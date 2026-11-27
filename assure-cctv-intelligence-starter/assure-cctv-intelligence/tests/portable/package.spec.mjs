@@ -46,6 +46,10 @@ test('a file-origin user gesture can start display capture, update results, and 
   await page.goto(pageURL);
   await page.getByRole('button', { name: 'Share screen' }).click();
   await expect(page.locator('.fw-source-tag')).toHaveText('Screen share');
+  const rate = page.getByRole('combobox',{name:'Capture target'});
+  await rate.selectOption('30'); await expect(rate).toHaveValue('30');
+  expect(await page.locator('.fw-stage video').evaluate(el => el.srcObject.getVideoTracks()[0].getSettings().frameRate)).toBeLessThanOrEqual(30);
+  await rate.selectOption('60'); await expect(rate).toHaveValue('60');
   const status = page.locator('.fw-results-foot');
   await expect(status).toContainText('Checked');
   const first = await status.textContent();

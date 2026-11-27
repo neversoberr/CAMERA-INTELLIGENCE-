@@ -16,6 +16,7 @@ import { HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
 import { CropDialog, Guide } from './dialogs';
 import { useSource } from './use-source';
 import { useAnalysis } from './use-analysis';
+import { CaptureRateControl } from './CaptureRateControl';
 import { useLivePreview } from './use-live-preview';
 import { VacancyJournal } from '@/lib/monitor/vacancy';
 import { VacancyDashboard } from './VacancyDashboard';
@@ -111,7 +112,7 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
     {screen && <div className="fw-playback-bar"><div className="fw-filters" role="group" aria-label="Camera wall display">
       <button aria-pressed={moving} onClick={() => setDisplay('live')} title="Play the shared window without waiting for detection"><Radio size={13}/>Live video</button>
       <button aria-pressed={!moving} onClick={() => setDisplay('scan')} title="Show the checked still with boxes from fresh detections"><ScanLine size={13}/>Last scan</button>
-    </div><span className="fw-playback-meter" title="Measured incoming shared-window frames per second, not the analysis rate"><i/>{!preview.receiving ? 'Waiting for video' : preview.fps === null ? 'Measuring input…' : `Input ~${preview.fps} fps`}</span></div>}
+    </div><CaptureRateControl track={source.stream.getVideoTracks()[0]}/><span className="fw-playback-meter" title="Measured incoming shared-window frames per second, not the analysis rate"><i/>{!preview.receiving ? 'Waiting for video' : preview.fps === null ? 'Measuring input…' : `Input ~${preview.fps} fps`}</span></div>}
     <div className="fw-stage-surround"><div className={`fw-stage ${grid.cols > 2 || grid.rows > 2 ? 'fw-dense' : ''}`} style={{ aspectRatio: ratio, width: expanded ? `min(100%, ${ratio * 100}cqh)` : `min(100%, ${ratio * 66}svh)` }}>
       {screen && <div ref={preview.host} className="fw-live-feed" aria-hidden={!moving} style={{ ...preview.viewport?.style, visibility: moving && preview.viewport ? 'visible' : 'hidden' }}/>}
       {phase === 'sample' ? <img className="fw-frame" src={SAMPLE_URL} alt="Sample camera wall: reception, meeting room, workspace, and corridor"/> : <canvas className="fw-frame" hidden={moving || (screen && phase !== 'ready')} ref={analysis.canvasRef} aria-label={screen ? 'Last checked camera frame' : 'Latest captured frame'}/>}

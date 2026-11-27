@@ -4,14 +4,17 @@
 const STALE_MS = 4000;
 export function watchFrames(video: HTMLVideoElement, track: MediaStreamTrack) {
   let sequence = 0, epoch = 0, previous = -1, delivered = -Infinity, at = 0, callback = 0;
+  const resumed = new Set<() => void>();
   const callbacks = typeof video.requestVideoFrameCallback === 'function';
   const invalidate = () => { if (delivered !== -Infinity) epoch++; delivered = -Infinity; };
   const note = (counter: number, presented: number) => {
     if (track.readyState !== 'live' || !track.enabled || track.muted) { invalidate(); return; }
     if (counter === previous || !Number.isFinite(counter)) return;
-    if (presented - delivered > STALE_MS || counter < previous) epoch++;
+    const freshStart = presented - delivered > STALE_MS || counter < previous;
+    if (freshStart) epoch++;
     previous = counter; delivered = presented; sequence++;
     at = Math.round(Date.now() - Math.max(0, performance.now() - presented));
+    if (freshStart) resumed.forEach(fn => fn());
   };
   if (callbacks) {
     const onFrame: VideoFrameRequestCallback = (now, meta) => {
@@ -30,6 +33,9 @@ export function watchFrames(video: HTMLVideoElement, track: MediaStreamTrack) {
   track.addEventListener('mute', invalidate); track.addEventListener('unmute', invalidate);
   video.addEventListener('emptied', invalidate);
   return {
+    // Wake the waiting overlay on the FIRST delivered frame, not the next FPS
+    // meter tick. Normal continuous playback never calls these listeners.
+    onResume(fn: () => void) { resumed.add(fn); return () => { resumed.delete(fn); }; },
     read() {
       const now = performance.now();
       if (!callbacks) poll();
@@ -37,6 +43,7 @@ export function watchFrames(video: HTMLVideoElement, track: MediaStreamTrack) {
       return { token: sequence, epoch, at, frames: previous };
     },
     close() {
+      resumed.clear();
       if (callbacks) video.cancelVideoFrameCallback(callback);
       clearInterval(timer); track.removeEventListener('unmute', invalidate);
       track.removeEventListener('mute', invalidate); video.removeEventListener('emptied', invalidate);

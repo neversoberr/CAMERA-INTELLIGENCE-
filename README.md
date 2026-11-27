@@ -8,7 +8,7 @@ Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intell
 
 ## Watch the cameras move
 
-Leave **Live video** selected to see the shared iVMS window as it plays. The browser requests 30 fps and displays the frames it receives, even during a Heavy scan. **Input ~… fps** measures the shared-window input, not how often a person is detected. Choose **Last scan** to inspect a still with matched boxes. Actual motion depends on the camera feed, iVMS, the browser and the PC.
+Leave **Live video** selected to see the shared iVMS window as it plays. By default **Capture target → Real-time** asks for 60 fps without forcing a minimum or downscaling your wall. If your PC is overloaded, try **Lower load · 30 fps** on the same share. Video keeps playing during Heavy scans. **Input ~… fps** measures the shared-window input, not how often a person is detected. Choose **Last scan** to inspect a still with matched boxes. The app cannot remove delay already in iVMS or guarantee a zero-delay screen copy. Compare the same moving camera or timestamp side by side, not its occupancy label.
 
 ## When was a cabin empty?
 

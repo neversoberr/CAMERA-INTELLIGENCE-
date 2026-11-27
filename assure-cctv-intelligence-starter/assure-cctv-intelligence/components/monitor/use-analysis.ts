@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  blankReadings, HEAVY_SAMPLE_READINGS, isSampleLayout, PROFILES, SAMPLE_READINGS, sourceElement, takeFrame,
+  blankReadings, HEAVY_SAMPLE_READINGS, isSampleLayout, liveSnapshot, PROFILES, SAMPLE_READINGS, sourceElement, takeFrame,
   type DetectionMode, type Grid, type Reading, type Rect, type ScanStats, type Source,
 } from '@/lib/monitor/types';
 import { createAnalysisWorker } from '@/lib/monitor/platform';
@@ -38,20 +38,28 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
     let id = session.current;
     let cancelled = false, busy = false, reset = true, timer: ReturnType<typeof setTimeout>, watchdog: ReturnType<typeof setTimeout>;
     let shown = false, missing = false, checkedAt = 0, started = 0, token = -1, epoch = -1, dimensions = '';
-    const still = document.createElement('canvas');
-    const show = () => {
+    const still = live ? null : document.createElement('canvas');
+    let ratio = 16 / 9;
+    const show = (image: ImageBitmap | HTMLCanvasElement) => {
       const canvas = canvasRef.current;
       if (!canvas || cancelled) return;
-      if (canvas.width !== still.width) canvas.width = still.width;
-      if (canvas.height !== still.height) canvas.height = still.height;
-      canvas.getContext('2d')?.drawImage(still, 0, 0); shown = true;
+      if (canvas.width !== image.width) canvas.width = image.width;
+      if (canvas.height !== image.height) canvas.height = image.height;
+      const sink = image instanceof ImageBitmap ? canvas.getContext('bitmaprenderer') : null;
+      if (sink && image instanceof ImageBitmap) sink.transferFromImageBitmap(image);
+      else {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Cannot display checked frame');
+        ctx.drawImage(image, 0, 0);
+      }
+      shown = true;
     };
     const update = (view: Snapshot) => { if (!cancelled) setLast({ key, view }); };
     const fail = () => {
       if (cancelled) return;
       clearTimeout(timer); clearTimeout(watchdog); resident.current?.terminate(); resident.current = null; busy = false;
       if (id) journal.interrupt(id); setProgress(null);
-      update({ readings: blankReadings(n, 'unclear'), phase: 'error', ratio: shown ? still.width / still.height : 16 / 9 });
+      update({ readings: blankReadings(n, 'unclear'), phase: 'error', ratio: shown ? ratio : 16 / 9 });
     };
     const noFrame = () => {
       if (!missing) {
@@ -63,10 +71,9 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
       timer = setTimeout(run, 350);
     };
     const run = async () => {
+      let frame: ImageBitmap | undefined;
       try {
         started = performance.now();
-        const el = await sourceElement(source);
-        if (cancelled) return;
         if (source.kind === 'screen') {
           const stamp = source.clock.read();
           if (!stamp) { noFrame(); return; }
@@ -77,31 +84,41 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
           }
           if (epoch !== stamp.epoch && id) { journal.interrupt(id); reset = true; }
           token = stamp.token; epoch = stamp.epoch; checkedAt = stamp.at; dimensions = size; missing = false;
-        } else checkedAt = Date.now();
-        takeFrame(el, crop, still, profile.maxSide);
-        if (!shown) { if (!live) show(); update({ ...initial, ratio: still.width / still.height }); }
+          frame = await liveSnapshot(source.video, crop, profile.maxSide);
+        } else if (still) {
+          checkedAt = Date.now();
+          const el = await sourceElement(source);
+          if (cancelled) return;
+          takeFrame(el, crop, still, profile.maxSide); show(still);
+          frame = await createImageBitmap(still);
+        }
+        if (cancelled || !frame) return;
+        ratio = frame.width / frame.height;
+        if (!shown || still) update({ ...initial, ratio });
         const worker = resident.current ??= createAnalysisWorker();
         worker.onerror = fail; worker.onmessageerror = fail;
-        worker.onmessage = ({ data }: MessageEvent<{ error?: boolean; progress?: Progress; readings?: Reading[]; stats?: ScanStats }>) => {
+        worker.onmessage = ({ data }: MessageEvent<{ error?: boolean; progress?: Progress; readings?: Reading[]; stats?: ScanStats; evidence?: ImageBitmap }>) => {
           clearTimeout(watchdog);
-          if (cancelled) return;
-          if (data.progress) { setProgress({ key, value: data.progress }); watchdog = setTimeout(fail, 60000); return; }
-          busy = false; setProgress(null);
-          if (data.error || data.readings?.length !== n) { fail(); return; }
-          // An old sweep must not reopen a period after capture stalled/disconnected.
-          if (source.kind === 'screen' && (source.clock.read()?.epoch !== epoch ||
-              `${source.video.videoWidth}x${source.video.videoHeight}` !== dimensions)) { noFrame(); return; }
-          show(); update({ readings: data.readings, phase: 'ready', ratio: still.width / still.height, checkedAt, stats: data.stats });
-          if (id) journal.observe(id, checkedAt, token, data.readings);
-          const elapsed = performance.now() - started;
-          if (live) timer = setTimeout(run, Math.max(90, Math.min(400, elapsed * 0.2), profile.interval - elapsed));
+          const evidence = data.evidence;
+          try {
+            if (cancelled) return;
+            if (data.progress) { setProgress({ key, value: data.progress }); watchdog = setTimeout(fail, 60000); return; }
+            busy = false; setProgress(null);
+            if (data.error || data.readings?.length !== n || (live && !evidence)) { fail(); return; }
+            // An old sweep must not reopen a period after capture stalled/disconnected.
+            if (source.kind === 'screen' && (source.clock.read()?.epoch !== epoch ||
+                `${source.video.videoWidth}x${source.video.videoHeight}` !== dimensions)) { noFrame(); return; }
+            if (evidence) show(evidence);
+            update({ readings: data.readings, phase: 'ready', ratio, checkedAt, stats: data.stats });
+            if (id) journal.observe(id, checkedAt, token, data.readings);
+            const elapsed = performance.now() - started;
+            if (live) timer = setTimeout(run, Math.max(90, Math.min(400, elapsed * 0.2), profile.interval - elapsed));
+          } catch { fail(); } finally { evidence?.close(); }
         };
-        const frame = await createImageBitmap(still);
-        if (cancelled) { frame.close(); return; }
         busy = true;
-        worker.postMessage({ frame, ...grid, mode, live, frameToken: token, reset, reportProgress: mode === 'heavy' }, [frame]); reset = false;
+        worker.postMessage({ frame, ...grid, mode, live, frameToken: token, reset, reportProgress: mode === 'heavy', returnFrame: live }, [frame]); reset = false;
         watchdog = setTimeout(fail, 60000);
-      } catch { if (!cancelled) fail(); }
+      } catch { if (!cancelled) fail(); } finally { frame?.close(); }
     };
     void run();
     return () => {
@@ -111,7 +128,7 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
         resident.current.onmessage = resident.current.onerror = resident.current.onmessageerror = null;
         if (busy) { resident.current.terminate(); resident.current = null; }
       }
-      still.width = 0; still.height = 0;
+      if (still) { still.width = 0; still.height = 0; }
       if (canvasRef.current) canvasRef.current.width = 0;
     };
   }, [key, cachedSample, source, grid, crop, mode, n, initial, journal]);

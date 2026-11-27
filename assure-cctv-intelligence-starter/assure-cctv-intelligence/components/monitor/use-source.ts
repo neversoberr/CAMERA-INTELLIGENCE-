@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { captureFrameRate, REALTIME_RATE } from '@/lib/monitor/capture-rate';
 import { watchFrames } from '@/lib/monitor/live-frames';
 import { DEMO, type Source } from '@/lib/monitor/types';
 
@@ -48,7 +49,7 @@ export function useSource(onRestoreSample: () => void) {
     try {
       // The browser plays the shared window at its delivered rate. Detector
       // backpressure, not a low capture-rate cap, limits inference work.
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 } }, audio: false });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: captureFrameRate(REALTIME_RATE) }, audio: false });
       const video = document.createElement('video'); video.muted = true; video.playsInline = true;
       const track = stream.getVideoTracks()[0];
       if (!track) { stream.getTracks().forEach(t => t.stop()); throw new Error('No video track'); }

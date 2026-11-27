@@ -1,4 +1,4 @@
-FRAMEWATCH 0.5 — MONITOR YOUR CCTV WALL ON YOUR PC
+FRAMEWATCH 0.6 — MONITOR YOUR CCTV WALL ON YOUR PC
 
 1. Right-click Framewatch-PC.zip and choose Extract All. Double-click the
    extracted Framewatch.html in current desktop Microsoft Edge or Google Chrome.
@@ -7,8 +7,9 @@ FRAMEWATCH 0.5 — MONITOR YOUR CCTV WALL ON YOUR PC
 3. Set columns x rows (up to 4 x 4). Crop away menus or sidebars. Camera 01
    is at the top left; numbers continue across each row.
 4. Leave Live video selected for motion. Input ~... fps measures received
-   window frames. Framewatch requests 30 fps but cannot add motion missing
-   from iVMS. Last scan shows the checked still with its person boxes.
+   window frames, not camera latency. Capture target defaults to Real-time
+   (60 fps requested). If this PC struggles, try Lower load (30 fps) without
+   sharing again. Last scan shows the checked still with its person boxes.
    Heavy checks EVERY usable camera with two person models. Checks can take
    seconds; the live video does not wait. Try Balanced for less CPU use.
 5. Open Vacancy dashboard. Name places lets you label cameras, for example
@@ -52,9 +53,10 @@ QUICK CHECK / TROUBLESHOOTING
 - Keep Framewatch running and your PC awake. It cannot recover earlier times,
   see behind an obstruction, or tell if a DVR is replaying an old scene.
   Empty means no person detected, not proof a cabin was vacant.
-- If movement is choppy, make sure iVMS itself is playing smoothly and its
-   window is not minimized. If only the labels lag, they follow checks, not
-   video frames. Try Balanced or Fast if your PC needs quicker checks.
+- For a delay check, put iVMS and Framewatch side by side. Compare the same
+  movement or camera timestamp, not the Checked time. Use live view in iVMS
+  and keep its window visible. A screen copy cannot arrive before the source.
+  If only the labels lag, try Balanced or Fast for quicker checks.
 - If browser/device policy blocks screen capture, contact your IT admin or
   use a screenshot for a one-time check. Do not disable security policies.
 - If a detector cannot load, try current Edge or Chrome with WebGL available.
