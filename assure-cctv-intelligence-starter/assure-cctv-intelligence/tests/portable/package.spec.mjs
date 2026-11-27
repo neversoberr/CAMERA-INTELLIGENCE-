@@ -68,3 +68,18 @@ test('offline PC history uses real live checks, stops and reopens at the last ob
   await page.reload(); await expect(rows).toHaveCount(2); expect(await times()).toEqual(before);
   await expect(page.getByRole('button',{name:'Share screen'})).toBeVisible(); expect(remote).toEqual([]);
 });
+
+test('the PC copy can give and disable a live reminder offline without a desktop notification API', async ({page, context}) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'Notification', { configurable: true, value: undefined }); });
+  const remote=[]; context.on('request', r=>{ if(/^https?:/.test(r.url())) remote.push(r.url()); });
+  await page.goto(pageURL); await installLiveWall(page);
+  await page.getByRole('button',{name:'Fast',exact:true}).click(); await page.getByLabel('Camera grid: columns by rows').selectOption('2x1');
+  await page.getByRole('link',{name:'Reminders',exact:true}).click(); await page.getByRole('switch',{name:'Empty-cabin reminders'}).click();
+  await expect(page.getByRole('button',{name:'Enable desktop notifications'})).toBeDisabled(); await expect(page.getByText('Not available here')).toBeVisible();
+  // Return to the wall: switches between views must not tear down the reminder listener.
+  await page.getByRole('link',{name:'View monitor'}).click(); await page.getByRole('button',{name:'Share screen'}).click();
+  const alert=page.getByLabel('Vacancy reminder',{exact:true}); await expect(alert).toContainText('2 places observed empty'); await expect(alert).toContainText('Camera 01, Camera 02');
+  await page.getByRole('link',{name:'Reminders',exact:true}).click(); await page.getByRole('switch',{name:'Empty-cabin reminders'}).click(); await expect(alert).toHaveCount(0);
+  await page.getByRole('button',{name:'Stop sharing'}).click(); await page.reload(); await expect(page.getByRole('switch',{name:'Empty-cabin reminders'})).not.toBeChecked();
+  expect(remote).toEqual([]);
+});

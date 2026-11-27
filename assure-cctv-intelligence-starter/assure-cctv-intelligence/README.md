@@ -52,6 +52,15 @@ Open **Vacancy dashboard** (hosted shortcut: `/reports`) in the monitor tab. You
 - Times come from **this PC’s clock** when video frames were presented, not from the camera overlay. Keep the PC awake and the tab running. There is no data from before monitoring, or while the screen was stopped, suspended or unavailable. Replayed/frozen content **inside** a still-advancing shared screen cannot reliably be identified.
 - Only layout dimensions, optional names, empty observation times and end status are saved to **this browser**. On reopen, periods last seen more than 30 days ago are discarded; up to 20 layouts and 500 periods per layout. After a crash the last saved check is the endpoint, not the reopen time. Use **Clear history** after stopping, or export before clearing browser data. Local-file storage depends on the browser, exact file path and profile; private browsing, moving the HTML or disabling storage may lose access. If saving fails, analysis still works in memory and the dashboard warns you.
 
+### Empty-cabin reminders
+
+Open **Reminders** in the same tab (hosted shortcut: `/alerts`). Switch **Live vacancy reminders** on, then choose **All live cameras** or one camera/place in the active layout. Names come from **Vacancy dashboard → Name places**. A single-cabin rule pauses on a new share or layout until you select a place again; camera numbers alone do not identify a cabin across layouts.
+
+- **Remind me**: on the first empty check, or after 30 seconds, 1, 5 or 15 minutes of observed vacancy. The alert fires on a fresh live inference, not a timer. Switching it on mid-period can alert on the next fresh check if that period already meets your delay. Occupied/Unclear, a capture gap or a layout change breaks continuity. No alerts from the sample, screenshots, cached labels or restored history.
+- You get one in-app reminder per cabin per continuous empty period; cabins qualifying in the same sweep are grouped. Dismissing it or switching monitor tabs does not re-arm it. **Review vacancy periods** opens the dashboard without stopping capture. “Observed empty” means no person detected, not proof of vacancy.
+- **Enable desktop notifications** is a separate opt-in. Allow the browser permission prompt, then use **Test notification** to check your PC. Cabin names and times may be shown on the desktop or lock screen; no frames are attached. The test is labelled and does not generate a vacancy event. Turn off the desktop channel to keep only in-app reminders, or switch the whole rule off.
+- Requires a running tab, an awake PC and live screen sharing. There are no phone messages or background push service. Browser/file-origin policy, a cross-origin preview, or OS notification / Do Not Disturb settings can block desktop banners; in-app reminders do not require notification permission. Rules are saved in this browser when local storage is available. No reminder delivery log or place selection is persisted.
+
 ### What the labels mean
 
 | Label | Meaning |
@@ -66,14 +75,14 @@ Small, occluded or distant people can be missed. A frozen image, poster, or refl
 ### Privacy and compatibility
 
 - Use a recent desktop browser with WebAssembly, WebGL2 and OffscreenCanvas. Screen capture requires a trustworthy browser context (HTTPS, localhost, or the extracted local HTML in a supporting browser), browser permission, and sometimes OS permission. If an embedded preview blocks sharing, use the PC copy or a screenshot.
-- Only select a screen you are authorised to analyse. No microphone, video recording, face recognition, uploads or database writes. Frames and boxes are never persisted; only the local vacancy journal described above is saved.
+- Only select a screen you are authorised to analyse. No microphone, video recording, face recognition, uploads or database writes. Frames and boxes are never persisted; only the vacancy journal and reminder preferences are saved locally.
 - Each pass freezes one frame, crops each camera cell and runs the COCO **EfficientDet-Lite0** detector (also **EfficientDet-Lite2** in Heavy mode) inside a local Web Worker. Only bounding boxes and occupancy labels return to the UI. The models, WASM, fonts and sample image are served by the web app itself or embedded in the portable HTML. See [model origin, checksum and licence](public/models/NOTICE.md).
 - The default 2 × 2 sample uses results precomputed from that exact bundled image so the first screen does not need to load the model. Every user-selected source runs actual inference.
 
 ## Checks
 
 ```sh
-npm test                        # region geometry, evidence fusion, TTL and vacancy confirmation
+npm test                        # region geometry, evidence fusion, TTL, vacancy confirmation and reminder eligibility
 npm run build                   # Next.js production build and TypeScript check
 npx playwright install chromium # one-time, for optional browser tests
 npm run test:browser            # exercises the real local model and capture lifecycle

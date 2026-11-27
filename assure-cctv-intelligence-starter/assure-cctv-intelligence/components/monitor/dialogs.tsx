@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
-import { Check, Crop, Download, Grid2X2, LockKeyhole, MonitorUp, RotateCcw, ScanLine, X } from 'lucide-react';
+import { Bell, Check, Crop, Download, Grid2X2, LockKeyhole, MonitorUp, RotateCcw, ScanLine, X } from 'lucide-react';
 import { PC_DOWNLOAD } from '@/lib/monitor/platform';
 import { FULL, sourceElement, takeFrame, type Source, type Rect } from '@/lib/monitor/types';
 
@@ -25,8 +25,9 @@ export function Guide({ onClose }: { onClose: () => void }) {
       <li><ScanLine/><div><h3>Read the camera status</h3><p>Occupied means a person was detected. Empty means none was detected, not proof the room is empty. A weak signal or poor view stays unclear. On a live feed, a recent person signal needs two fresh negative checks to clear.</p></div></li>
       <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Heavy checks every usable camera with two person models and overlapping close-ups. For faster updates, try Balanced or Fast. Only one frame is analysed at a time.</p></div></li>
       <li><Grid2X2/><div><h3>Review empty periods</h3><p>Open Vacancy dashboard while sharing or afterwards. Use Name places to label cabins. Each period ends at the last observed empty frame. If you rearrange cameras in the viewer, stop sharing and start a new layout.</p></div></li>
+      <li><Bell/><div><h3>Get an empty-cabin reminder</h3><p>Open Reminders, turn on the rule, and choose a delay and place. For a PC banner, also enable desktop notifications and allow the browser prompt. Leave the camera screen shared.</p></div></li>
     </ol>
-    <div className="fw-guide-note"><LockKeyhole size={17}/><span>Frames are never saved. Only vacancy times and optional place names are kept in this browser. Export or clear them in the dashboard.</span></div>
+    <div className="fw-guide-note"><LockKeyhole size={17}/><span>Frames are never saved. Vacancy history and reminder preferences stay in this browser. Export or clear history in the dashboard.</span></div>
     <div className="fw-dialog-actions">
       {PC_DOWNLOAD && <a className="fw-btn" href={PC_DOWNLOAD} download><Download size={15}/>Download for PC</a>}
       <button className="fw-btn fw-primary" onClick={onClose}>Got it <Check size={16}/></button>

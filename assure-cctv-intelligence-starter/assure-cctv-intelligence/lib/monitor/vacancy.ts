@@ -42,6 +42,12 @@ function restore(id: string, l: ReturnType<typeof JSON.parse>, now: number): Lay
 export class VacancyJournal {
   private view: JournalView = { layouts: [], active: null, temporary: false };
   private listeners = new Set<() => void>();
+  // A separate event from a snapshot change: settings, renames, restored history,
+  // elapsed wall time and cached labels must never be sources of notifications.
+  private emptyListeners = new Set<(layout: Layout, fresh: readonly Period[]) => void>();
+  onFreshEmpty(fn: (layout: Layout, fresh: readonly Period[]) => void) {
+    this.emptyListeners.add(fn); return () => { this.emptyListeners.delete(fn); };
+  }
   private disk: Storage | null = null;
   private token = -1;
   private previousAt = 0;
@@ -103,7 +109,7 @@ export class VacancyJournal {
     this.token = token;
     const discontinuity = this.previousAt > 0 && (at <= this.previousAt || at - this.previousAt > MAX_GAP);
     this.previousAt = at;
-    const open = new Set<number>(); let changed = false, boundary = false;
+    const open = new Set<number>(), fresh: Period[] = []; let changed = false, boundary = false;
     const periods = l.periods.map(p => {
       if (p.end !== null) return p;
       const r = readings[p.camera];
@@ -111,17 +117,19 @@ export class VacancyJournal {
       if (end) { changed = boundary = true; return { ...p, end } as Period; }
       open.add(p.camera);
       if (r.cached) return p; // no new inference for this place
-      changed = true; return { ...p, to: at };
+      const observed = { ...p, to: at }; fresh.push(observed); changed = true; return observed;
     });
     readings.forEach((r, camera) => {
       if (r.state === 'empty' && !r.cached && !open.has(camera)) {
-        periods.push({ camera, from: at, to: at, end: null }); changed = boundary = true;
+        const observed = { camera, from: at, to: at, end: null };
+        fresh.push(observed); periods.push(observed); changed = boundary = true;
       }
     });
     if (!changed) return;
     const next = { ...l, periods: prune(periods, Date.now()) };
     this.replace(next);
     if (boundary || Date.now() - this.written >= 4000) this.save(next);
+    if (fresh.length) this.emptyListeners.forEach(fn => fn(next, fresh));
   }
   interrupt(id: string, end: End = 'gap') {
     const l = this.current(id); if (!l || !l.periods.some(p => p.end === null)) return;

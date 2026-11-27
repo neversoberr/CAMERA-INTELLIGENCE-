@@ -237,3 +237,24 @@
   .fw-log-head { padding: 16px 13px; }.fw-log-filters { padding: 0 13px 13px; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 9px; }.fw-log-filters label:first-child { grid-column: 1/-1; }
   .fw-history-note { flex-wrap: wrap; gap: 6px; }.fw-history-note p { flex: 1; min-width: 75%; }.fw-history-note .fw-text-btn { margin-left: 23px; }
 }
+
+.fw-reminder-grid { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 16px; align-items: start; margin-top: 26px; }
+.fw-reminder-card { padding: clamp(16px,2vw,24px); }
+.fw-rule-head, .fw-rule-status, .fw-rule-actions, .fw-toast-head { display: flex; align-items: center; gap: 10px; }
+.fw-rule-head, .fw-toast-head { justify-content: space-between; }
+.fw-rule-head { flex-wrap: wrap; margin-bottom: 10px; }.fw-rule-head .fw-heading-group svg { color: var(--lime); }
+.fw-reminder-card p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.fw-rule-switch { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border: 1px solid #404a42; border-radius: 20px; background: #232924; color: #c5d0c6 !important; font-size: 12px !important; font-weight: 650 !important; }
+.fw-rule-switch i { width: 24px; height: 14px; border-radius: 9px; background: #4a564c; padding: 3px; }
+.fw-rule-switch i::before { content: ''; display: block; width: 8px; height: 8px; background: #dce6dc; border-radius: 50%; }
+.fw-rule-switch[aria-checked=true] { background: #293726; border-color: #516a46; color: var(--lime) !important; }.fw-rule-switch[aria-checked=true] i { background: var(--lime); }.fw-rule-switch[aria-checked=true] i::before { margin-left: auto; background: #263522; }
+.fw-rule-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0 9px; }
+.fw-rule-actions { flex-wrap: wrap; margin: 15px 0 9px; }.fw-rule-actions .fw-btn { min-height: 34px; padding-inline: 12px; font-size: 12px !important; }.fw-rule-actions .fw-btn:disabled { cursor: not-allowed; }
+.fw-rule-status { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; color: #aab5ad; font: 11px/1.5 var(--mono); overflow-wrap: anywhere; }
+.fw-rule-status i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: #859489; }.fw-rule-status.armed i { background: var(--lime); }
+.fw-reminder-card .fw-reminder-hint { color: var(--amber); margin-top: 9px; }.fw-reminder-help { grid-column: 1/-1; margin-top: 0; }
+.fw-reminder-toast { position: fixed; z-index: 25; bottom: 20px; right: 20px; width: min(355px,calc(100% - 32px)); max-height: 55svh; overflow: auto; overflow-wrap: anywhere; padding: 13px 16px; background: #202a23; border: 1px solid #556d53; border-radius: 11px; box-shadow: 0 10px 42px #0008; }
+.fw-toast-head { margin-bottom: 5px; }.fw-reminder-toast strong { display: block; font-size: 15px; }.fw-reminder-toast p, .fw-reminder-toast details { color: #bfcdc1; font-size: 12px; margin: 4px 0; }
+.fw-reminder-toast a { display: inline-flex; align-items: center; gap: 5px; color: var(--lime); margin-top: 7px; font-size: 12px; font-weight: 650; }
+@media (max-width: 820px) { .fw-reminder-grid { grid-template-columns: 1fr; }.fw-top-inner { column-gap: 10px; } }
+@media (max-width: 490px) { .fw-rule-fields { grid-template-columns: 1fr; gap: 9px; }.fw-reminder-toast { right: 16px; bottom: 14px; } }

@@ -8,7 +8,11 @@ Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intell
 
 ## When was a cabin empty?
 
-Open **Vacancy dashboard** in the same tab while sharing or afterwards. Use **Name places** to label cabins. Each row shows the first and last live empty check, duration and why the period ended. Filter by place, layout or date and export CSV. Stills and the sample never create history. Only interval metadata is saved on this browser; there is no backfill for unmonitored hours.
+Open **Vacancy dashboard** in the same tab while sharing or afterwards. Use **Name places** to label cabins. Each row shows the first and last live empty check, duration and why the period ended. Filter by place, layout or date and export CSV. Stills and the sample never create history. Only local metadata is saved on this browser; there is no backfill for unmonitored hours.
+
+## Notify me when a cabin is empty
+
+With your CCTV screen shared, open **Reminders** and switch **Live vacancy reminders** on. Choose a cabin (or all cameras) and a delay. To also get a PC notification, click **Enable desktop notifications**, allow the browser prompt, and use **Test notification**. Each cabin alerts once per observed empty period, not on every scan. Keep Framewatch open and sharing; if desktop notifications are blocked you still get the in-app reminder.
 
 ## Run the web project from source
 

@@ -18,7 +18,14 @@ import { useSource } from './use-source';
 import { useAnalysis } from './use-analysis';
 import { VacancyJournal } from '@/lib/monitor/vacancy';
 import { VacancyDashboard } from './VacancyDashboard';
+import { Reminders } from './Reminders';
 
+const VIEWS = {
+  monitor: { tab: 'Monitor', eyebrow: 'VISION WORKSPACE', title: 'Occupancy monitor', intro: 'Share your CCTV screen or open an image to see which camera views are occupied.' },
+  vacancy: { tab: 'Vacancy dashboard', eyebrow: 'OBSERVATION HISTORY', title: 'Vacancy dashboard', intro: 'See when each cabin or place was observed empty during live monitoring.' },
+  reminders: { tab: 'Reminders', eyebrow: 'LOCAL NOTIFICATIONS', title: 'Empty-cabin reminders', intro: 'Choose when and where to be notified that no person was detected in a cabin.' },
+} as const;
+type View = keyof typeof VIEWS;
 type Icon = typeof Cctv;
 type Filter = 'all' | Exclude<State, 'checking'>;
 const defaults = ['1x1', '2x2', '3x3', '4x4'];
@@ -160,10 +167,12 @@ function Workspace({ source, grid, setGrid, mode, setMode, onCloseSource, journa
 export default function Monitor() {
   const [grid, setGrid] = useState<Grid>(DEFAULT_GRID), [guide, setGuide] = useState(false);
   const [mode, setMode] = useState<DetectionMode>('heavy');
-  const [journal] = useState(() => new VacancyJournal()), [dashboard, setDashboard] = useState(false);
+  const [journal] = useState(() => new VacancyJournal()), [view, setView] = useState<View>('monitor');
   useEffect(() => {
     try { journal.attach(window.localStorage); } catch { journal.attach(null); }
-    const navigate = () => { setDashboard(window.location.hash === '#vacancy'); window.scrollTo(0, 0); };
+    const navigate = () => {
+      const hash = window.location.hash.slice(1); setView(hash === 'vacancy' || hash === 'reminders' ? hash : 'monitor'); window.scrollTo(0, 0);
+    };
     const finish = () => { const id = journal.snapshot().active; if (id) journal.finish(id); };
     navigate(); window.addEventListener('hashchange', navigate); window.addEventListener('pagehide', finish);
     return () => { window.removeEventListener('hashchange', navigate); window.removeEventListener('pagehide', finish); finish(); };
@@ -173,15 +182,16 @@ export default function Monitor() {
   return <div className="fw">
     <header className="fw-top"><div className="fw-container fw-top-inner">
       <a href={HOME_URL} className="fw-brand" aria-label="Framewatch home"><BrandMark/><span>Framewatch</span></a>
-      <span className="fw-nav-sep"/><nav className="fw-views" aria-label="Workspace views"><a href="#monitor" aria-current={!dashboard ? 'page' : undefined}>Monitor</a><a href="#vacancy" aria-current={dashboard ? 'page' : undefined}>Vacancy dashboard</a></nav>
+      <span className="fw-nav-sep"/><nav className="fw-views" aria-label="Workspace views">{(Object.keys(VIEWS) as View[]).map(v =>
+        <a key={v} href={`#${v}`} aria-current={view === v ? 'page' : undefined}>{VIEWS[v].tab}</a>)}</nav>
       <div className="fw-top-right"><span className="fw-local"><ShieldCheck size={15}/>On-device</span><span className="fw-nav-sep"/>
         <button className="fw-guide-btn" onClick={() => setGuide(true)}><BookOpen size={16}/>Quick guide</button></div>
     </div></header>
     <main className="fw-container fw-main">
-      <div className="fw-hero"><div><div className="fw-eyebrow"><span className="fw-eyebrow-line"/>{dashboard ? 'OBSERVATION HISTORY' : 'VISION WORKSPACE'}</div><h1>{dashboard ? 'Vacancy dashboard' : 'Occupancy monitor'}</h1>
-        <p>{dashboard ? 'See when each cabin or place was observed empty during live monitoring.' : 'Share your CCTV screen or open an image to see which camera views are occupied.'}</p></div>
+      <div className="fw-hero"><div><div className="fw-eyebrow"><span className="fw-eyebrow-line"/>{VIEWS[view].eyebrow}</div><h1>{VIEWS[view].title}</h1>
+        <p>{VIEWS[view].intro}</p></div>
         <div className="fw-actions"><input ref={fileInput} type="file" className="fw-hidden" aria-label="Open camera screenshot" accept="image/png,image/jpeg,image/webp" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void input.openImage(file); }}/>
-          {dashboard ? <a href="#monitor" className="fw-btn"><MonitorIcon size={16}/>View monitor</a> : <button className="fw-btn" disabled={input.picking} onClick={() => fileInput.current?.click()}><Upload size={16}/>Open image</button>}
+          {view !== 'monitor' ? <a href="#monitor" className="fw-btn"><MonitorIcon size={16}/>View monitor</a> : <button className="fw-btn" disabled={input.picking} onClick={() => fileInput.current?.click()}><Upload size={16}/>Open image</button>}
           {input.source.kind === 'screen' ? <button className="fw-btn fw-stop" onClick={input.clear}><Square size={14}/>Stop sharing</button> : <button className="fw-btn fw-primary" onClick={input.share} disabled={input.picking}>{input.picking ? <LoaderCircle size={17} className="fw-spin"/> : <MonitorUp size={17}/>}Share screen</button>}
         </div>
       </div>
@@ -189,11 +199,12 @@ export default function Monitor() {
         {input.notice.sharing && PC_DOWNLOAD && <a href={PC_DOWNLOAD} download>Download PC copy <Download size={13}/></a>}
         <button className="fw-icon-btn" aria-label="Dismiss message" onClick={() => input.setNotice(null)}><X size={16}/></button></div>}
       {/* Changing dashboard tabs must not unmount the live source, canvas or worker. */}
-      <div hidden={dashboard}><Workspace journal={journal} key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
+      <div hidden={view !== 'monitor'}><Workspace journal={journal} key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
         <a className="fw-history-link" href="#vacancy"><Clock3 size={19}/><span><strong>Vacancy history</strong> See the first and last empty check for each place.</span><ArrowRight size={16}/></a>
       </div>
-      {dashboard && <VacancyDashboard journal={journal} sharing={input.source.kind === 'screen'}/>}
-      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Frames stay on this device and are never saved or uploaded. Only vacancy history is stored locally.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
+      {view === 'vacancy' && <VacancyDashboard journal={journal} sharing={input.source.kind === 'screen'}/>}
+      <Reminders journal={journal} visible={view === 'reminders'}/>
+      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Frames stay on this device and are never saved or uploaded. Vacancy history and reminder preferences stay in this browser.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
     </main>
     <footer className="fw-container fw-footer"><span><BrandMark small/> Framewatch <b>/</b> Assure Intelligence</span><span className="fw-footer-label"><i/> LOCAL VISION ENGINE</span></footer>
     {guide && <Guide onClose={() => setGuide(false)}/>}
