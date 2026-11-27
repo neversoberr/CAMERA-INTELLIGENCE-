@@ -4,7 +4,7 @@
 
 ## Launch on your PC
 
-Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), choose **Extract All**, and double-click **Framewatch.html** in the extracted folder. Use a current desktop Edge or Chrome browser. Click **Share screen**, select the CCTV window, and match its grid. No installation, commands, internet connection or Arena access token are required.
+Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), choose **Extract All**, and double-click **Framewatch.html** in the extracted folder. Use a current desktop Edge or Chrome browser. Click **Share screen**, select the CCTV window, and match its grid. Start with **Balanced** detection; use **Detailed** for distant people or **Fast** for a slower PC. No installation, commands, internet connection or Arena access token are required.
 
 ## Run the web project from source
 

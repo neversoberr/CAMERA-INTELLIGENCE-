@@ -1,6 +1,6 @@
 {
   "name": "assure-cctv-intelligence",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:browser": "playwright test",
     "package:pc": "node scripts/package-pc.mjs",
-    "test:pc": "playwright test --config portable/playwright.config.mjs"
+    "test:pc": "playwright test --config portable/playwright.config.mjs",
+    "benchmark": "node scripts/benchmark-detector.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "5.2.8",

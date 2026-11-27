@@ -1,4 +1,4 @@
-FRAMEWATCH — RUN IT ON YOUR PC
+FRAMEWATCH 0.2 — RUN IT ON YOUR PC
 
 1. If you are viewing the ZIP, close it, right-click Framewatch-PC.zip and
    choose Extract All. Open the extracted folder.
@@ -10,9 +10,13 @@ FRAMEWATCH — RUN IT ON YOUR PC
 4. Choose the grid to match your screen: 2 x 2 means two columns and two rows.
    Use the crop tool if the camera viewer has menus or sidebars. Camera 01 is
    the upper-left view. Numbers run across each row.
-5. Read Camera status. Occupied means a person was detected. Empty means no
+5. Under Person detector, start with Balanced. If people look small in a
+   distant view, try Detailed or enlarge the camera in the CCTV viewer. Use
+   Fast on a slower PC. Last scan shows the actual time taken on your PC.
+6. Read Camera status. Occupied means a person was detected. Empty means no
    person was detected, not proof that no one is there. Unclear means the
-   view could not be classified reliably. Click Stop sharing to finish.
+   view could not be classified reliably. On live video, Confirming vacancy
+   means a second clear frame is needed. Click Stop sharing to finish.
 
 NOTHING TO INSTALL
 This is a local browser app. No command prompt, Node.js, account, access token,

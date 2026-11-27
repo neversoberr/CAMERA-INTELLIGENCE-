@@ -26,7 +26,21 @@ Open **http://localhost:3000**. For a production build, run `npm run build` and 
 1. Click **Share screen** and choose the window or tab showing the camera grid. Choose the camera viewer, not Framewatch itself. Alternatively, click **Open image** to analyse a local PNG, JPG, or WebP screenshot (up to 25 MB).
 2. Set the **columns × rows** selector on the camera wall to match your viewer (1–4 of each). If the screen includes menus or a sidebar, use **Crop to camera grid**. This assumes a rectangular grid of equally sized views.
 3. Read the label on each tile or filter **Camera status** by result. **CAM 01** is the top left view; numbers continue across each row. These are positions on your screen, not IDs read from the cameras. For example, in a 2 × 2 grid, **Camera 03** is the bottom-left view.
-4. A shared screen is checked again about two seconds **after** each pass completes. An image is checked once. **Stop sharing**, the browser's stop button, or disconnecting the source releases the capture and clears its results. The initially displayed **Sample** wall is a synthetic example, not a live connection.
+4. Leave **Person detector** on **Balanced** to start. Choose **Detailed** for small people in distant views, or **Fast** for a slow PC. A mode, crop, or grid change rechecks the current source. An image is checked once per configuration. **Stop sharing**, the browser's stop button, or disconnecting the source releases the capture and clears its results. The initially displayed **Sample** wall is a synthetic example, not a live connection.
+
+### Speed and detection modes
+
+| Mode | What it checks | Live target interval¹ |
+|---|---|---|
+| Fast | One full-view person scan per camera that needs inference. | 0.4 s |
+| Balanced (default) | Whole view, then up to two overlapping close-ups along the longer axis if a person wasn't clear in the full view. Stops once it has sufficient person evidence. | 0.6 s |
+| Detailed | Whole view and up to four overlapping close-ups, using more of the source resolution. Useful for small people. Slower, particularly on large moving grids. | 0.9 s |
+
+¹ Start-to-start targets, not promised frame rates. Only one frame is in flight; on slow hardware the next check waits for inference to finish and leaves a short rest. **Last scan** shows measured worker time (not model load/capture time), model passes, and unchanged views. A **model score** on an occupied badge is the detector's score, not a probability that the room is occupied.
+
+Zooms use original camera pixels, not a magnified low-resolution model input. Boxes are mapped back to their own tile and duplicates are suppressed. Two agreeing weak boxes from different passes can support a person; duplicate proposals from one pass cannot. Very small views skip zooms that wouldn't contain useful detail. Brackets show detection evidence, **not an exhaustive people count**.
+
+Live mode checks thumbnail quality and local changes on every sampled frame. It can reuse a stable result briefly, but forces a fresh whole-view scan when its 2.2–2.5 s age limit expires. Balanced can reuse negative close-ups for at most 4 s if those regions haven't changed. Age limits are evaluated at the next processed frame, and cache hits never extend them. Weak/invalid views do not become empty through reuse. After a person signal, the first miss is **Unclear — Confirming vacancy**; two fresh negative inferences on distinct video frames are needed to clear it. A blank or lost feed immediately produces **Unclear** on inspection, without any stale boxes. Switching camera input, layout, crop, or profile resets the per-view history. See the [benchmark and limitations](DETECTION-EVALUATION.md).
 
 ### What the labels mean
 
@@ -49,7 +63,7 @@ Small, occluded or distant people can be missed. A frozen image, poster, or refl
 ## Checks
 
 ```sh
-npm test                        # grid geometry, frame quality, classification
+npm test                        # region geometry, evidence fusion, TTL and vacancy confirmation
 npm run build                   # Next.js production build and TypeScript check
 npx playwright install chromium # one-time, for optional browser tests
 npm run test:browser            # exercises the real local model and capture lifecycle

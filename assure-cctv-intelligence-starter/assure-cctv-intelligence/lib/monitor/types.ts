@@ -3,7 +3,14 @@ import { SAMPLE_URL } from '@/lib/monitor/platform';
 export type Grid = { cols: number; rows: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 export type State = 'occupied' | 'empty' | 'unclear' | 'checking';
-export type Reading = { state: State; boxes: Rect[] };
+export type Reading = { state: State; boxes: Rect[]; reason?: 'person' | 'weak' | 'poor-view' | 'no-person' | 'confirming-empty'; score?: number };
+export type DetectionMode = 'fast' | 'balanced' | 'detail';
+export type ScanStats = { scanMs: number; inferences: number; reused: number };
+export const PROFILES = {
+  fast: { label: 'Fast', note: 'One whole-view check. Use for close cameras or a slower PC.', interval: 400, maxSide: 1920 },
+  balanced: { label: 'Balanced', note: 'Checks overlapping close-ups when a whole-view scan finds no clear person.', interval: 600, maxSide: 2560 },
+  detail: { label: 'Detailed', note: 'Adds up to four overlapping close-ups per view. Best for distant people; updates take longer.', interval: 900, maxSide: 3840 },
+} as const;
 export type Source =
   | { kind: 'demo' }
   | { kind: 'image'; image: HTMLImageElement; name: string }
@@ -15,9 +22,9 @@ export const SAMPLE_NAMES = ['Reception', 'Meeting room', 'Workspace', 'Corridor
 // Cached output of the bundled detector for our illustrated 2×2 sample ONLY.
 // User-selected media always goes through inference, even if it has the same dimensions.
 export const SAMPLE_READINGS: Reading[] = [
-  { state: 'occupied', boxes: [{ x: 284 / 640, y: 34 / 360, w: 76 / 640, h: 187 / 360 }] },
+  { state: 'occupied', reason: 'person', score: 0.37109375, boxes: [{ x: 284 / 640, y: 34 / 360, w: 76 / 640, h: 187 / 360 }] },
   { state: 'empty', boxes: [] },
-  { state: 'occupied', boxes: [{ x: 408 / 640, y: 76 / 360, w: 56 / 640, h: 149 / 360 }] },
+  { state: 'occupied', reason: 'person', score: 0.43359375, boxes: [{ x: 408 / 640, y: 76 / 360, w: 56 / 640, h: 149 / 360 }] },
   { state: 'empty', boxes: [] },
 ];
 export const stateLabel: Record<State, string> = { occupied: 'Occupied', empty: 'Empty', unclear: 'Unclear', checking: 'Checking' };
@@ -42,9 +49,10 @@ export function takeFrame(el: HTMLVideoElement | HTMLImageElement, crop: Rect, c
   const x = Math.floor(crop.x * width), y = Math.floor(crop.y * height);
   const w = Math.max(1, Math.round(crop.w * width)), h = Math.max(1, Math.round(crop.h * height));
   const scale = Math.min(1, maxSide / Math.max(w, h));
-  canvas.width = Math.max(1, Math.round(w * scale));
-  canvas.height = Math.max(1, Math.round(h * scale));
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const dw = Math.max(1, Math.round(w * scale)), dh = Math.max(1, Math.round(h * scale));
+  if (canvas.width !== dw) canvas.width = dw;
+  if (canvas.height !== dh) canvas.height = dh;
+  const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
   if (!ctx) throw new Error('Canvas unavailable');
   ctx.drawImage(el, x, y, w, h, 0, 0, canvas.width, canvas.height);
 }

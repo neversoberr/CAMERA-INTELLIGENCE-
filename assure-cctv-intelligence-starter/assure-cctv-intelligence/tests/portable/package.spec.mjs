@@ -29,6 +29,10 @@ test('the extracted HTML analyses the supplied screenshot without a server or ne
   await expect(page.locator('.fw-camera-list .fw-status')).toHaveText(['Occupied', 'Empty', 'Occupied', 'Empty']);
   await page.getByRole('button', { name: 'Empty', exact: true }).click();
   await expect(page.locator('.fw-camera-name strong')).toHaveText(['Camera 02', 'Camera 04']);
+  await page.getByRole('button', { name: 'All views' }).click();
+  await page.getByRole('button', { name: 'Detailed', exact: true }).click();
+  await expect(page.locator('.fw-engine-stats')).toContainText('20 model passes');
+  await expect(page.locator('.fw-camera-list .fw-status')).toHaveText(['Occupied', 'Empty', 'Occupied', 'Empty']);
   expect(remote).toEqual([]);
 });
 

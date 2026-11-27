@@ -3,14 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, Download, BookOpen, Cctv, ChevronDown,
   CircleDashed, Crop, Expand, Grid2X2, Image as ImageIcon, Info, Layers2,
-  LoaderCircle, LockKeyhole, Monitor as MonitorIcon, MonitorUp, Radio, Scan, ScanLine,
+  LoaderCircle, LockKeyhole, Monitor as MonitorIcon, MonitorUp, Radio, Scan, ScanLine, SlidersHorizontal,
   ShieldCheck, Square, Upload, UsersRound, X,
 } from 'lucide-react';
 import '@fontsource-variable/manrope';
 import './monitor.css';
 import {
-  DEFAULT_GRID, FULL, isFull, isSampleLayout, SAMPLE_NAMES, sourceName, stateLabel, twoDigits,
-  type Grid, type Reading, type Rect, type Source, type State,
+  DEFAULT_GRID, FULL, isFull, isSampleLayout, PROFILES, SAMPLE_NAMES, sourceName, stateLabel, twoDigits,
+  type DetectionMode, type Grid, type Reading, type Rect, type ScanStats, type Source, type State,
 } from '@/lib/monitor/types';
 import { HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
 import { CropDialog, Guide } from './dialogs';
@@ -54,8 +54,8 @@ function GridControl({ grid, onChange }: { grid: Grid; onChange: (g: Grid) => vo
     <ChevronDown size={12}/></label>;
 }
 
-function Status({ state }: { state: State }) {
-  return <span className={`fw-status ${state}`}><i/>{stateLabel[state]}</span>;
+function Status({ state, title }: { state: State; title?: string }) {
+  return <span className={`fw-status ${state}`} title={title}><i/>{stateLabel[state]}</span>;
 }
 
 function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSource }: {
@@ -82,7 +82,6 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
     document.addEventListener('keydown', keys);
     return () => { document.body.style.overflow = old; document.removeEventListener('keydown', keys); };
   }, [expanded]);
-  const sampleLayout = isSampleLayout(source, grid, crop);
   const { phase, ratio, readings } = analysis;
   const sourceLabel = source.kind === 'demo' ? 'Sample' : source.kind === 'image' ? 'Screenshot' : 'Screen share';
   return <section ref={panel} className={`fw-panel fw-wall ${expanded ? 'fw-expanded' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label="Camera wall">
@@ -93,7 +92,7 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
       </div>
     </div>
     <div className="fw-stage-surround"><div className={`fw-stage ${grid.cols > 2 || grid.rows > 2 ? 'fw-dense' : ''}`} style={{ aspectRatio: ratio, width: `min(100%, ${ratio * (expanded ? 78 : 66)}svh)` }}>
-      {sampleLayout ? <img className="fw-frame" src={SAMPLE_URL} alt="Sample camera wall: reception, meeting room, workspace, and corridor"/> : <canvas className="fw-frame" ref={analysis.canvasRef} aria-label="Latest captured frame"/>}
+      {phase === 'sample' ? <img className="fw-frame" src={SAMPLE_URL} alt="Sample camera wall: reception, meeting room, workspace, and corridor"/> : <canvas className="fw-frame" ref={analysis.canvasRef} aria-label="Latest captured frame"/>}
       <div className="fw-tile-grid" style={{ gridTemplateColumns: `repeat(${grid.cols}, minmax(0,1fr))`, gridTemplateRows: `repeat(${grid.rows}, minmax(0,1fr))` }}>
         {readings.map((reading, i) => <div key={i} className={`fw-tile ${reading.state}`}>
           <span className="fw-camera-tag"><i/>CAM {twoDigits(i + 1)}</span>
@@ -120,22 +119,34 @@ function Results({ readings, grid, sampleLayout, phase, checkedAt }: { readings:
     <div className="fw-filters" role="group" aria-label="Filter camera results">{filters.map(f => <button key={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'all' ? 'All views' : stateLabel[f]}</button>)}</div>
     <ul className="fw-camera-list" aria-label="Per-camera occupancy">{entries.map(({ reading, i }) => <li key={i}>
       <div className={`fw-list-icon ${reading.state}`}><Cctv size={20} strokeWidth={1.65}/></div>
-      <div className="fw-camera-name"><strong>Camera {twoDigits(i + 1)}</strong><span>{sampleLayout ? SAMPLE_NAMES[i] : `Row ${Math.floor(i / grid.cols) + 1} · Column ${i % grid.cols + 1}`}</span></div>
-      <Status state={reading.state}/>
+      <div className="fw-camera-name"><strong>Camera {twoDigits(i + 1)}</strong><span>{sampleLayout ? SAMPLE_NAMES[i] : `Row ${Math.floor(i / grid.cols) + 1} · Column ${i % grid.cols + 1}`}</span>
+        {reading.state === 'unclear' && <small>{reading.reason === 'weak' ? 'Weak person signal' : reading.reason === 'confirming-empty' ? 'Confirming vacancy' : reading.reason === 'poor-view' ? 'Poor visibility' : 'No reliable result'}</small>}</div>
+      <Status state={reading.state} title={reading.score != null ? `Person model score ${reading.score.toFixed(2)} (not an accuracy estimate)` : undefined}/>
     </li>)}{!entries.length && <li className="fw-no-results"><Scan size={22}/>{`No ${filter} views in this result.`}</li>}</ul>
     <div className="fw-results-foot"><span className="fw-tiny-label"><Activity size={13}/> ANALYSIS</span><span>{phase === 'sample' ? 'Sample result' : phase === 'checking' ? 'Checking views…' : phase === 'ready' && checkedAt ? `Checked ${new Date(checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Not available'}</span></div>
   </section>;
 }
 
-function Workspace({ source, grid, setGrid, onCloseSource }: { source: Source; grid: Grid; setGrid: (g: Grid) => void; onCloseSource: () => void }) {
+function DetectorPanel({ mode, setMode, stats }: { mode: DetectionMode; setMode: (m: DetectionMode) => void; stats?: ScanStats }) {
+  return <section className="fw-panel fw-detector" aria-label="Person detector settings">
+    <div className="fw-heading-group"><SlidersHorizontal size={16}/><h2>Person detector</h2></div>
+    <div className="fw-filters" role="group" aria-label="Detection mode">{(Object.keys(PROFILES) as DetectionMode[]).map(m =>
+      <button key={m} aria-pressed={m === mode} onClick={() => setMode(m)}>{PROFILES[m].label}</button>
+    )}</div>
+    <p>{PROFILES[mode].note}</p>
+    {stats && <div className="fw-engine-stats" title="Worker processing time, excluding model load and screen capture"><span>Last scan <b>{stats.scanMs} ms</b></span><span>{stats.inferences} model {stats.inferences === 1 ? 'pass' : 'passes'}{stats.reused > 0 ? ` · ${stats.reused} unchanged` : ''}</span></div>}
+  </section>;
+}
+
+function Workspace({ source, grid, setGrid, mode, setMode, onCloseSource }: { source: Source; grid: Grid; setGrid: (g: Grid) => void; mode: DetectionMode; setMode: (m: DetectionMode) => void; onCloseSource: () => void }) {
   const [crop, setCrop] = useState<Rect>(FULL), [cropping, setCropping] = useState(false);
-  const analysis = useAnalysis(source, grid, crop);
+  const analysis = useAnalysis(source, grid, crop, mode);
   return <>
     <Stats readings={analysis.readings}/>
     {analysis.phase === 'error' && <div className="fw-notice" role="alert"><Info size={17}/><span>The local detector could not run. Use a recent desktop browser with WebGL enabled. No views have been marked empty.</span><button onClick={analysis.retry}>Retry analysis</button></div>}
     <div className="fw-workspace"><CameraWall source={source} grid={grid} setGrid={setGrid} crop={crop} onCrop={() => setCropping(true)} analysis={analysis} onCloseSource={onCloseSource}/>
       <aside className="fw-aside"><Results readings={analysis.readings} grid={grid} sampleLayout={isSampleLayout(source, grid, crop)} phase={analysis.phase} checkedAt={analysis.checkedAt}/>
-        <div className="fw-reading-note"><span className="fw-note-icon"><ScanLine size={18}/></span><div><h3>Reading your results</h3><p>Empty means no person was detected. Dark or low-confidence views are marked unclear.</p></div></div>
+        <DetectorPanel mode={mode} setMode={setMode} stats={analysis.stats}/>
       </aside>
     </div>
     {cropping && <CropDialog source={source} current={crop} onClose={() => setCropping(false)} onApply={r => { setCrop(r); setCropping(false); }}/>}
@@ -144,6 +155,7 @@ function Workspace({ source, grid, setGrid, onCloseSource }: { source: Source; g
 
 export default function Monitor() {
   const [grid, setGrid] = useState<Grid>(DEFAULT_GRID), [guide, setGuide] = useState(false);
+  const [mode, setMode] = useState<DetectionMode>('balanced');
   const restoreSample = useCallback(() => setGrid(DEFAULT_GRID), []);
   const input = useSource(restoreSample), fileInput = useRef<HTMLInputElement>(null);
   return <div className="fw">
@@ -164,7 +176,7 @@ export default function Monitor() {
       {input.notice && <div className={`fw-notice ${input.notice.info ? 'info' : ''}`} role={input.notice.info ? 'status' : 'alert'}><Info size={17}/><span>{input.notice.text}</span>
         {input.notice.sharing && PC_DOWNLOAD && <a href={PC_DOWNLOAD} download>Download PC copy <Download size={13}/></a>}
         <button className="fw-icon-btn" aria-label="Dismiss message" onClick={() => input.setNotice(null)}><X size={16}/></button></div>}
-      <Workspace key={input.revision} source={input.source} grid={grid} setGrid={setGrid} onCloseSource={input.clear}/>
+      <Workspace key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
       <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Your camera frames are analysed locally. Nothing is recorded or uploaded.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
     </main>
     <footer className="fw-container fw-footer"><span><BrandMark small/> Framewatch <b>/</b> Assure Intelligence</span><span className="fw-footer-label"><i/> LOCAL VISION ENGINE</span></footer>

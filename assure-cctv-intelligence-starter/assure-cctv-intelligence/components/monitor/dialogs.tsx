@@ -22,7 +22,8 @@ export function Guide({ onClose }: { onClose: () => void }) {
     <ol className="fw-guide-steps">
       <li><MonitorUp/><div><h3>Choose your camera screen</h3><p>Share the window or tab containing your CCTV grid, not this monitor. You can also open a PNG, JPG, or WebP screenshot.</p></div></li>
       <li><Grid2X2/><div><h3>Match the grid</h3><p>Choose columns × rows and crop out menus or borders. Cameras are numbered from left to right, starting with the top row.</p></div></li>
-      <li><ScanLine/><div><h3>Read the camera status</h3><p>Occupied means a person was detected. Empty means no person was detected, not a guarantee that no one is there. Unclear covers weak detections and unusable views.</p></div></li>
+      <li><ScanLine/><div><h3>Read the camera status</h3><p>Occupied means a person was detected. Empty means none was detected, not proof the room is empty. A weak signal or poor view stays unclear. On a live feed, a recent person signal needs two fresh negative checks to clear.</p></div></li>
+      <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Start with Balanced. For distant people, try Detailed or enlarge the camera in your CCTV viewer. Fast skips the close-up checks on slower PCs.</p></div></li>
     </ol>
     <div className="fw-guide-note"><LockKeyhole size={17}/><span>Frames stay in this browser. Screen sharing has no audio and can be stopped at any time.</span></div>
     <div className="fw-dialog-actions">

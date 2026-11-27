@@ -44,7 +44,7 @@ export function useSource(onRestoreSample: () => void) {
     cancelPick(); const id = ticket.current; setPicking(true);
     let candidate: Source | null = null;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 2, max: 5 } }, audio: false });
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 4, max: 6 } }, audio: false });
       const video = document.createElement('video'); video.muted = true; video.playsInline = true;
       candidate = { kind: 'screen', video, stream };
       if (id !== ticket.current) return;
