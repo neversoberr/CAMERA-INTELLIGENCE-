@@ -22,7 +22,10 @@ export function watchFrames(video: HTMLVideoElement, track: MediaStreamTrack) {
   }
   // The fallback counter must be sampled independently of a potentially slow
   // 16-camera sweep. Otherwise a long inference would look like a feed outage.
-  const poll = () => { const count = video.getVideoPlaybackQuality?.().totalVideoFrames; if (count > 0) note(count, performance.now()); };
+  const poll = () => {
+    const q = video.getVideoPlaybackQuality?.();
+    if (q && q.totalVideoFrames > q.droppedVideoFrames) note(q.totalVideoFrames - q.droppedVideoFrames, performance.now());
+  };
   const timer = callbacks ? undefined : setInterval(poll, 300);
   track.addEventListener('mute', invalidate); track.addEventListener('unmute', invalidate);
   video.addEventListener('emptied', invalidate);
@@ -31,7 +34,7 @@ export function watchFrames(video: HTMLVideoElement, track: MediaStreamTrack) {
       const now = performance.now();
       if (!callbacks) poll();
       if (track.readyState !== 'live' || !track.enabled || track.muted || video.readyState < 2 || now - delivered > STALE_MS) return null;
-      return { token: sequence, epoch, at };
+      return { token: sequence, epoch, at, frames: previous };
     },
     close() {
       if (callbacks) video.cancelVideoFrameCallback(callback);

@@ -26,7 +26,13 @@ Open **http://localhost:3000**. For a production build, run `npm run build` and 
 1. Click **Share screen** and choose the window or tab showing the camera grid. Choose the camera viewer, not Framewatch itself. Alternatively, click **Open image** to analyse a local PNG, JPG, or WebP screenshot (up to 25 MB).
 2. Set the **columns × rows** selector on the camera wall to match your viewer (1–4 of each). If the screen includes menus or a sidebar, use **Crop to camera grid**. This assumes a rectangular grid of equally sized views.
 3. Read the label on each tile or filter **Camera status** by result. **CAM 01** is the top left view; numbers continue across each row. These are positions on your screen, not IDs read from the cameras. For example, in a 2 × 2 grid, **Camera 03** is the bottom-left view.
-4. **Heavy** is selected by default. It checks every usable camera with two detectors on every sweep. Use **Balanced** or **Fast** if the PC needs quicker updates. A mode, crop, or grid change rechecks the current source. An image is checked once per configuration. **Stop sharing**, the browser's stop button, or disconnecting the source releases the capture and clears the current frame without deleting vacancy history. The initially displayed **Sample** wall is a synthetic example, not a live connection.
+4. **Heavy** is selected by default. It checks every usable camera with two detectors on every sweep. Use **Balanced** or **Fast** if the PC needs quicker checks. A mode, crop, or grid change rechecks the current source. An image is checked once per configuration. **Stop sharing**, the browser's stop button, or disconnecting the source releases the capture and clears the current frame without deleting vacancy history. The initially displayed **Sample** wall is a synthetic example, not a live connection.
+
+### Live video vs Last scan
+
+During a share the wall defaults to **Live video**: the browser plays one muted video of the selected window, cropped to the grid, without waiting for the detector. Framewatch requests **30 fps** rather than capping capture at 6; the browser, viewer and PC determine what actually arrives. **Input ~… fps** estimates presented shared-window frames, not the camera's own frame rate. iVMS could be refreshing its window even when a particular camera supplies fewer distinct pictures.
+
+Tile labels say **Last check** because the picture can already have moved. Choose **Last scan** to see the checked still with the boxes, then **Live video** to switch back. Neither switch stops capture, triggers extra scans or changes history. A screenshot or the sample cannot show live motion. If playback is choppy, check that the iVMS window itself shows smooth live video and is not minimized; try **Balanced** to reduce CPU contention. If only the labels are slow, look at the detector's scan time, not the input fps.
 
 ### Speed and detection modes
 
@@ -37,7 +43,7 @@ Open **http://localhost:3000**. For a production build, run `npm run build` and 
 | Detailed | Whole view and up to four overlapping close-ups, using more of the source resolution. Useful for small people. Slower, particularly on large moving grids. | 0.9 s |
 | **Heavy (default)** | Both whole-view models (Lite0 + 448px Lite2 int8), plus up to four overlapping Lite2 close-ups **even when already occupied**. No whole-view or zoom cache. Up to 96 model passes on a 4 × 4 grid. | ≥1 s; actual sweeps can take many seconds |
 
-¹ Start-to-start targets, not promised frame rates. Only one frame is in flight; on slow hardware the next check waits for inference to finish and leaves a short rest. **Last scan** shows measured worker time (not model load/capture time), model passes, and unchanged views. A **model score** on an occupied badge is the detector's score, not a probability that the room is occupied.
+¹ Start-to-start targets, not promised frame rates. Only one frame is in flight; on slow hardware the next check waits for inference to finish and leaves a short rest. The **Person detector** panel shows measured worker time (not model load/capture time), model passes, and unchanged views. A **model score** on an occupied badge is the detector's score, not a probability that the room is occupied.
 
 Zooms use original camera pixels, not a magnified low-resolution model input. Boxes are mapped back to their own tile and duplicates are suppressed. Two agreeing weak boxes from different passes can support a person; duplicate proposals from one pass cannot. Very small views skip zooms that wouldn't contain useful detail. Brackets show detection evidence, **not an exhaustive people count**.
 
@@ -65,7 +71,7 @@ Open **Reminders** in the same tab (hosted shortcut: `/alerts`). Switch **Live v
 
 | Label | Meaning |
 |---|---|
-| Occupied | A person was detected in this tile. Brackets show the detected region. |
+| Occupied | A person was detected in this tile. Brackets on the checked still show the detected region. |
 | Empty | No person was detected in a usable frame. This is an estimate, **not proof of an empty room**. |
 | Unclear | The view is blank, very dark, too small, ambiguous, or could not be analysed. |
 | Checking | Awaiting analysis of the new source, crop, or layout. |
@@ -88,6 +94,7 @@ npx playwright install chromium # one-time, for optional browser tests
 npm run test:browser            # exercises the real local model and capture lifecycle
 npm run package:pc              # rebuild public/downloads/Framewatch-PC.zip from this source
 npm run test:pc                 # test extracted HTML offline, using file:// and synthetic capture
+node scripts/benchmark-preview.mjs [archive.zip] # measure visible pixel changes during Heavy sweeps
 ```
 
 ## Existing starter components

@@ -79,7 +79,7 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
           token = stamp.token; epoch = stamp.epoch; checkedAt = stamp.at; dimensions = size; missing = false;
         } else checkedAt = Date.now();
         takeFrame(el, crop, still, profile.maxSide);
-        if (!shown) { show(); update({ ...initial, ratio: still.width / still.height }); }
+        if (!shown) { if (!live) show(); update({ ...initial, ratio: still.width / still.height }); }
         const worker = resident.current ??= createAnalysisWorker();
         worker.onerror = fail; worker.onmessageerror = fail;
         worker.onmessage = ({ data }: MessageEvent<{ error?: boolean; progress?: Progress; readings?: Reading[]; stats?: ScanStats }>) => {
@@ -89,7 +89,8 @@ export function useAnalysis(source: Source, grid: Grid, crop: Rect, mode: Detect
           busy = false; setProgress(null);
           if (data.error || data.readings?.length !== n) { fail(); return; }
           // An old sweep must not reopen a period after capture stalled/disconnected.
-          if (source.kind === 'screen' && source.clock.read()?.epoch !== epoch) { noFrame(); return; }
+          if (source.kind === 'screen' && (source.clock.read()?.epoch !== epoch ||
+              `${source.video.videoWidth}x${source.video.videoHeight}` !== dimensions)) { noFrame(); return; }
           show(); update({ readings: data.readings, phase: 'ready', ratio: still.width / still.height, checkedAt, stats: data.stats });
           if (id) journal.observe(id, checkedAt, token, data.readings);
           const elapsed = performance.now() - started;

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { installLiveWall } from '../live-wall.mjs';
+import { checkPlayback } from '../check-playback.mjs';
 
 let dir, pageURL, example;
 test.beforeAll(async () => {
@@ -81,5 +82,14 @@ test('the PC copy can give and disable a live reminder offline without a desktop
   const alert=page.getByLabel('Vacancy reminder',{exact:true}); await expect(alert).toContainText('2 places observed empty'); await expect(alert).toContainText('Camera 01, Camera 02');
   await page.getByRole('link',{name:'Reminders',exact:true}).click(); await page.getByRole('switch',{name:'Empty-cabin reminders'}).click(); await expect(alert).toHaveCount(0);
   await page.getByRole('button',{name:'Stop sharing'}).click(); await page.reload(); await expect(page.getByRole('switch',{name:'Empty-cabin reminders'})).not.toBeChecked();
+  expect(remote).toEqual([]);
+});
+
+
+test('the extracted PC wall plays moving pixels while Heavy is busy, without networking', async ({page,context}) => {
+  const remote = []; context.on('request', r => { if (/^https?:/.test(r.url())) remote.push(r.url()); });
+  await page.goto(pageURL); await checkPlayback(page);
+  await page.getByRole('button', {name:'Stop sharing'}).click();
+  expect(await page.evaluate(() => window.previewProbe.track.readyState)).toBe('ended');
   expect(remote).toEqual([]);
 });

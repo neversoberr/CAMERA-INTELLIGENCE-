@@ -4,7 +4,11 @@
 
 ## Launch on your PC
 
-Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), choose **Extract All**, and double-click **Framewatch.html** in the extracted folder. Use a current desktop Edge or Chrome browser. Click **Share screen**, select the CCTV window, and match its grid. **Heavy** detection is on by default: two person models check every usable camera in every sweep. Choose **Balanced** or **Fast** for quicker updates. No installation, commands, internet connection or Arena access token are required.
+Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), choose **Extract All**, and double-click **Framewatch.html** in the extracted folder. Use a current desktop Edge or Chrome browser. Click **Share screen**, select the CCTV window, and match its grid. **Heavy** detection is on by default: two person models check every usable camera in every sweep. Choose **Balanced** or **Fast** for quicker detections. No installation, commands, internet connection or Arena access token are required.
+
+## Watch the cameras move
+
+Leave **Live video** selected to see the shared iVMS window as it plays. The browser requests 30 fps and displays the frames it receives, even during a Heavy scan. **Input ~… fps** measures the shared-window input, not how often a person is detected. Choose **Last scan** to inspect a still with matched boxes. Actual motion depends on the camera feed, iVMS, the browser and the PC.
 
 ## When was a cabin empty?
 

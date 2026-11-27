@@ -1,4 +1,5 @@
 import type { FrameClock } from './live-frames';
+import { frameRegion } from './frame-region';
 import { SAMPLE_URL } from '@/lib/monitor/platform';
 
 export type Grid = { cols: number; rows: number };
@@ -10,7 +11,7 @@ export type ScanStats = { scanMs: number; inferences: number; reused: number; sc
 export const PROFILES = {
   fast: { label: 'Fast', note: 'One whole-view check. Use for close cameras or a slower PC.', interval: 400, maxSide: 1920 },
   balanced: { label: 'Balanced', note: 'Checks overlapping close-ups when a whole-view scan finds no clear person.', interval: 600, maxSide: 2560 },
-  detail: { label: 'Detailed', note: 'Adds up to four overlapping close-ups per view. Best for distant people; updates take longer.', interval: 900, maxSide: 3840 },
+  detail: { label: 'Detailed', note: 'Adds up to four overlapping close-ups per view. Best for distant people; scans take longer.', interval: 900, maxSide: 3840 },
   heavy: { label: 'Heavy', note: 'Two person models. Every usable camera gets a fresh scan, even when still. Higher CPU use.', interval: 1000, maxSide: 3840 },
 } as const;
 export type Source =
@@ -47,14 +48,13 @@ export async function sourceElement(source: Source) {
   const img = new Image(); img.src = SAMPLE_URL; await img.decode(); return img;
 }
 
-// Freeze one frame per pass. The detector and the visible overlay must refer to
-// the very same pixels, not to a video which has already moved on.
+// Freeze one frame per pass for inference and its evidence (never for playing
+// the live video). Person boxes belong to these pixels, not to a later frame.
 export function takeFrame(el: HTMLVideoElement | HTMLImageElement, crop: Rect, canvas: HTMLCanvasElement, maxSide = 2560) {
   const width = el instanceof HTMLVideoElement ? el.videoWidth : el.naturalWidth;
   const height = el instanceof HTMLVideoElement ? el.videoHeight : el.naturalHeight;
   if (!width || !height) throw new Error('No source frame');
-  const x = Math.floor(crop.x * width), y = Math.floor(crop.y * height);
-  const w = Math.max(1, Math.round(crop.w * width)), h = Math.max(1, Math.round(crop.h * height));
+  const { x, y, w, h } = frameRegion(width, height, crop);
   const scale = Math.min(1, maxSide / Math.max(w, h));
   const dw = Math.max(1, Math.round(w * scale)), dh = Math.max(1, Math.round(h * scale));
   if (canvas.width !== dw) canvas.width = dw;

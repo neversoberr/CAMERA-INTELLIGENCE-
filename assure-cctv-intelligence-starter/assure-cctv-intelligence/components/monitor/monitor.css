@@ -102,7 +102,7 @@
 .fw-clear { padding: 2px; }
 .fw-frame-note { flex: none; color: #99a59d; gap: 5px; }
 .fw-expanded { position: fixed; z-index: 20; inset: 0; border-radius: 0; display: flex; flex-direction: column; }
-.fw-expanded .fw-stage-surround { flex: 1; min-height: 0; }
+.fw-expanded .fw-stage-surround { flex: 1; min-height: 0; container-type: size; }
 .fw-aside { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
 .fw-results-head { padding: 19px 19px 16px; gap: 10px; justify-content: space-between; }
 .fw-number-tag { color: #b4beb6; background: #282e29; border: 1px solid #384039; font: 11px/1.25 var(--mono); padding: 3px 6px; border-radius: 5px; }
@@ -258,3 +258,14 @@
 .fw-reminder-toast a { display: inline-flex; align-items: center; gap: 5px; color: var(--lime); margin-top: 7px; font-size: 12px; font-weight: 650; }
 @media (max-width: 820px) { .fw-reminder-grid { grid-template-columns: 1fr; }.fw-top-inner { column-gap: 10px; } }
 @media (max-width: 490px) { .fw-rule-fields { grid-template-columns: 1fr; gap: 9px; }.fw-reminder-toast { right: 16px; bottom: 14px; } }
+
+/* Video is positioned relative to the cropped stage. It is never painted by
+   React or the detector loop; the independent canvas holds a checked still. */
+.fw-live-feed { position: absolute; pointer-events: none; }
+.fw-live-feed > video { display: block; width: 100%; height: 100%; max-width: none; object-fit: fill; }
+.fw-playback-bar { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 0 12px 9px; }
+.fw-playback-bar .fw-filters { margin: 0; }
+.fw-playback-bar .fw-filters button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 8px; white-space: nowrap; }
+.fw-playback-meter { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 10px/1.4 var(--mono); }
+.fw-playback-meter i { background: currentColor; width: 5px; height: 5px; border-radius: 50%; }
+.fw-live-feed ~ .fw-no-frame { background: #101411; }

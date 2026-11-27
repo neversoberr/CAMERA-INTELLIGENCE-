@@ -46,7 +46,9 @@ export function useSource(onRestoreSample: () => void) {
     cancelPick(); const id = ticket.current; setPicking(true);
     let candidate: Source | null = null;
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 4, max: 6 } }, audio: false });
+      // The browser plays the shared window at its delivered rate. Detector
+      // backpressure, not a low capture-rate cap, limits inference work.
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30 } }, audio: false });
       const video = document.createElement('video'); video.muted = true; video.playsInline = true;
       const track = stream.getVideoTracks()[0];
       if (!track) { stream.getTracks().forEach(t => t.stop()); throw new Error('No video track'); }

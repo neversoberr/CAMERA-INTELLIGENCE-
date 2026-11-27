@@ -22,8 +22,8 @@ export function Guide({ onClose }: { onClose: () => void }) {
     <ol className="fw-guide-steps">
       <li><MonitorUp/><div><h3>Choose your camera screen</h3><p>Share the window or tab containing your CCTV grid, not this monitor. You can also open a PNG, JPG, or WebP screenshot.</p></div></li>
       <li><Grid2X2/><div><h3>Match the grid</h3><p>Choose columns × rows and crop out menus or borders. Cameras are numbered from left to right, starting with the top row.</p></div></li>
-      <li><ScanLine/><div><h3>Read the camera status</h3><p>Occupied means a person was detected. Empty means none was detected, not proof the room is empty. A weak signal or poor view stays unclear. On a live feed, a recent person signal needs two fresh negative checks to clear.</p></div></li>
-      <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Heavy checks every usable camera with two person models and overlapping close-ups. For faster updates, try Balanced or Fast. Only one frame is analysed at a time.</p></div></li>
+      <li><ScanLine/><div><h3>Read the camera status</h3><p>Live video plays the shared window. Labels come from the last check; choose Last scan to see its still frame and person boxes. Empty means no person was detected, not proof of vacancy. Weak or poor views stay unclear.</p></div></li>
+      <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Heavy checks every usable camera with two person models and overlapping close-ups. For quicker checks or less CPU use, try Balanced or Fast. Live video does not wait for any of these scans.</p></div></li>
       <li><Grid2X2/><div><h3>Review empty periods</h3><p>Open Vacancy dashboard while sharing or afterwards. Use Name places to label cabins. Each period ends at the last observed empty frame. If you rearrange cameras in the viewer, stop sharing and start a new layout.</p></div></li>
       <li><Bell/><div><h3>Get an empty-cabin reminder</h3><p>Open Reminders, turn on the rule, and choose a delay and place. For a PC banner, also enable desktop notifications and allow the browser prompt. Leave the camera screen shared.</p></div></li>
     </ol>

@@ -16,6 +16,7 @@ import { HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
 import { CropDialog, Guide } from './dialogs';
 import { useSource } from './use-source';
 import { useAnalysis } from './use-analysis';
+import { useLivePreview } from './use-live-preview';
 import { VacancyJournal } from '@/lib/monitor/vacancy';
 import { VacancyDashboard } from './VacancyDashboard';
 import { Reminders } from './Reminders';
@@ -73,6 +74,9 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
 }) {
   const panel = useRef<HTMLElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [display, setDisplay] = useState<'live' | 'scan'>('live');
+  const preview = useLivePreview(source, crop);
+  const screen = source.kind === 'screen', moving = screen && display === 'live';
   const expandBtn = useRef<HTMLButtonElement>(null);
   // Expanded view also works in embedded previews that disallow the Fullscreen API.
   useEffect(() => {
@@ -91,7 +95,11 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
     document.addEventListener('keydown', keys);
     return () => { document.body.style.overflow = old; document.removeEventListener('keydown', keys); };
   }, [expanded]);
-  const { phase, ratio, readings } = analysis;
+  const { phase, readings, checkedAt } = analysis;
+  const ratio = moving && preview.viewport ? preview.viewport.ratio : analysis.ratio;
+  const wait = moving ? (!preview.receiving ? 'Waiting for live video frames' : null) :
+    phase === 'no-frame' ? 'Waiting for a visible camera frame' : screen && phase !== 'ready'
+      ? (phase === 'error' ? 'No checked frame available' : 'Waiting for a checked frame…') : null;
   const sourceLabel = source.kind === 'demo' ? 'Sample' : source.kind === 'image' ? 'Screenshot' : 'Screen share';
   return <section ref={panel} className={`fw-panel fw-wall ${expanded ? 'fw-expanded' : ''}`} role={expanded ? 'dialog' : undefined} aria-modal={expanded || undefined} aria-label="Camera wall">
     <div className="fw-panel-head"><div className="fw-heading-group"><MonitorIcon size={18}/><h2>Camera wall</h2><span className={`fw-source-tag ${source.kind}`}><i/>{sourceLabel}</span></div>
@@ -100,20 +108,25 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
         <button ref={expandBtn} className="fw-icon-btn" aria-label={expanded ? 'Close expanded view' : 'Expand camera wall'} title={expanded ? 'Close expanded view' : 'Expand camera wall'} onClick={() => setExpanded(!expanded)}>{expanded ? <X size={17}/> : <Expand size={16}/>}</button>
       </div>
     </div>
-    <div className="fw-stage-surround"><div className={`fw-stage ${grid.cols > 2 || grid.rows > 2 ? 'fw-dense' : ''}`} style={{ aspectRatio: ratio, width: `min(100%, ${ratio * (expanded ? 78 : 66)}svh)` }}>
-      {phase === 'sample' ? <img className="fw-frame" src={SAMPLE_URL} alt="Sample camera wall: reception, meeting room, workspace, and corridor"/> : <canvas className="fw-frame" ref={analysis.canvasRef} aria-label="Latest captured frame"/>}
+    {screen && <div className="fw-playback-bar"><div className="fw-filters" role="group" aria-label="Camera wall display">
+      <button aria-pressed={moving} onClick={() => setDisplay('live')} title="Play the shared window without waiting for detection"><Radio size={13}/>Live video</button>
+      <button aria-pressed={!moving} onClick={() => setDisplay('scan')} title="Show the checked still with boxes from fresh detections"><ScanLine size={13}/>Last scan</button>
+    </div><span className="fw-playback-meter" title="Measured incoming shared-window frames per second, not the analysis rate"><i/>{!preview.receiving ? 'Waiting for video' : preview.fps === null ? 'Measuring input…' : `Input ~${preview.fps} fps`}</span></div>}
+    <div className="fw-stage-surround"><div className={`fw-stage ${grid.cols > 2 || grid.rows > 2 ? 'fw-dense' : ''}`} style={{ aspectRatio: ratio, width: expanded ? `min(100%, ${ratio * 100}cqh)` : `min(100%, ${ratio * 66}svh)` }}>
+      {screen && <div ref={preview.host} className="fw-live-feed" aria-hidden={!moving} style={{ ...preview.viewport?.style, visibility: moving && preview.viewport ? 'visible' : 'hidden' }}/>}
+      {phase === 'sample' ? <img className="fw-frame" src={SAMPLE_URL} alt="Sample camera wall: reception, meeting room, workspace, and corridor"/> : <canvas className="fw-frame" hidden={moving || (screen && phase !== 'ready')} ref={analysis.canvasRef} aria-label={screen ? 'Last checked camera frame' : 'Latest captured frame'}/>}
       <div className="fw-tile-grid" style={{ gridTemplateColumns: `repeat(${grid.cols}, minmax(0,1fr))`, gridTemplateRows: `repeat(${grid.rows}, minmax(0,1fr))` }}>
         {readings.map((reading, i) => <div key={i} className={`fw-tile ${reading.state}`}>
           <span className="fw-camera-tag"><i/>CAM {twoDigits(i + 1)}</span>
-          {reading.boxes.map((b, j) => <div aria-hidden="true" className="fw-person-box" key={j} style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%` }}><i/><i/><i/><i/></div>)}
-          <span className="fw-tile-caption"><i/>{stateLabel[reading.state]}</span>
+          {!moving && !reading.cached && reading.boxes.map((b, j) => <div aria-hidden="true" className="fw-person-box" key={j} style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%`, width: `${b.w * 100}%`, height: `${b.h * 100}%` }}><i/><i/><i/><i/></div>)}
+          <span className="fw-tile-caption"><i/>{moving && reading.state !== 'checking' ? 'Last check: ' : ''}{stateLabel[reading.state]}</span>
         </div>)}
       </div>
-      {phase === 'no-frame' && <div className="fw-no-frame">Waiting for a visible camera frame</div>}
+      {wait && <div className="fw-no-frame">{wait}</div>}
     </div></div>
     <div className="fw-wall-foot"><span className="fw-source-name">{source.kind === 'screen' ? <MonitorUp size={14}/> : <ImageIcon size={14}/>}<span title={sourceName(source)}>{sourceName(source)}</span>
       {source.kind !== 'demo' && <button className="fw-clear" onClick={onCloseSource} aria-label="Disconnect source" title="Disconnect source"><X size={13}/></button>}</span>
-      <span className="fw-frame-note">{analysis.progress ? <><LoaderCircle className="fw-spin" size={13}/>Heavy sweep · {analysis.progress.camera}/{analysis.progress.total}</> : phase === 'checking' ? <><LoaderCircle className="fw-spin" size={13}/>Analysing…</> : phase === 'error' ? 'Analysis unavailable' : phase === 'no-frame' ? 'No frame' : source.kind === 'screen' ? <><Radio size={13}/>Auto-updating</> : <><Layers2 size={13}/>Still frame</>}</span>
+      <span className="fw-frame-note">{analysis.progress ? <><LoaderCircle className="fw-spin" size={13}/>Heavy sweep · {analysis.progress.camera}/{analysis.progress.total}</> : phase === 'checking' ? <><LoaderCircle className="fw-spin" size={13}/>Analysing…</> : phase === 'error' ? 'Analysis unavailable' : phase === 'no-frame' ? 'No frame' : screen && checkedAt ? <><ScanLine size={13}/>Checked {new Date(checkedAt).toLocaleTimeString()}</> : <><Layers2 size={13}/>Still frame</>}</span>
     </div>
   </section>;
 }
@@ -143,7 +156,7 @@ function DetectorPanel({ mode, setMode, stats }: { mode: DetectionMode; setMode:
       <button key={m} aria-pressed={m === mode} onClick={() => setMode(m)}>{PROFILES[m].label}</button>
     )}</div>
     <p>{PROFILES[mode].note}</p>
-    {stats && <div className="fw-engine-stats" title="Worker processing time, excluding model load and screen capture"><span>Last scan <b>{stats.scanMs} ms</b></span><span>{stats.inferences} model {stats.inferences === 1 ? 'pass' : 'passes'}{stats.reused > 0 ? ` · ${stats.reused} unchanged` : ''}</span>{mode === 'heavy' && <span className="fw-covered">{stats.scanned}/{stats.total} views freshly scanned{stats.scanned < stats.total ? ' · remaining views unclear' : ''}</span>}</div>}
+    {stats && <div className="fw-engine-stats" title="Worker processing time, excluding model load and screen capture"><span>Scan time <b>{stats.scanMs} ms</b></span><span>{stats.inferences} model {stats.inferences === 1 ? 'pass' : 'passes'}{stats.reused > 0 ? ` · ${stats.reused} unchanged` : ''}</span>{mode === 'heavy' && <span className="fw-covered">{stats.scanned}/{stats.total} views freshly scanned{stats.scanned < stats.total ? ' · remaining views unclear' : ''}</span>}</div>}
   </section>;
 }
 

@@ -2,6 +2,23 @@
 
 The target decision is **does this camera view contain a visible person?** No identities, remote inference or training on user screens. The comparisons below use actual browser workers, not mocked detections.
 
+## 0.5: live picture updates while Heavy is busy
+
+v0.4 requested 4 fps (max 6) and displayed the **scan canvas**. v0.5 requests 30 fps (ideal, not mandatory) and plays the already-running shared-window **video** directly in the cropped wall. No changes to Heavy's model, coverage, inference interval or vacancy rules. **Last scan** is a separate still; live video never draws boxes measured on an earlier frame.
+
+**Playback check, actual extracted PC copies:** headless Chromium 133, two-vCPU Linux sandbox, offline. A 640×360 synthetic 2×2 camera wall changes a binary pixel marker at a nominal 30 Hz. Both versions were deliberately given the same source rate regardless of their requested capture constraints, to isolate the display path. After the first real 24-pass Heavy result, sample the marker on the *visible* media element each animation tick for 12 s. Count changes, not animation ticks or detector callbacks.
+
+| One warm observation per version | v0.4 | v0.5 |
+|---|---:|---:|
+| Produced source changes/s | 30.0 | 30.3 |
+| Visible picture changes / ~12 s | 2 | **364** |
+| Visible changes/s | 0.17 | **30.3** |
+| Changes between consecutive samples within the same in-flight sweep | 0 | **349** |
+| Completed Heavy sweeps in the window | 2 | 1 |
+| Maximum scans simultaneously in flight | 1 | 1 |
+
+This tests playback **independence**, not faster detection, end-to-end camera latency or the FPS of iVMS. It doesn't simulate a DVR, RTSP, Windows capture drivers, or every display resolution. A slow/unchanging camera, a throttled window or a CPU-bound PC can deliver fewer distinct pictures. Automated hosted and offline tests also verify video/still switching without recapture; the hosted suite checks the live crop in expanded view and continued motion after a model error.
+
 ## 0.3: Heavy mode and vacancy timing
 
 Heavy (now the default) adds a second, larger EfficientDet-Lite2 int8 detector. On each sampled frame, both Lite0 and Lite2 scan every usable whole camera tile. Lite2 then scans four overlapping close-ups where the tile is large enough, regardless of whether a person was already found. No cached inference or motion trigger in Heavy. Blank/tiny tiles stay **Unclear**. This trades speed for coverage, not an assured increase in accuracy.
@@ -57,7 +74,8 @@ npm run benchmark                       # warm static/changing worker timings
 # to include the labelled presence matrix. Set SCAN_MODE to fast, balanced, detail or heavy.
 # Optional BENCH_WORKER_DIR: serve worker.js and analysis.mjs from a trusted local revision
 # in the benchmark browser, keeping all other inputs fixed.
-node scripts/benchmark-pc-live.mjs       # end-to-end cadence; optional argument: path to a PC zip
+node scripts/benchmark-pc-live.mjs       # interval between detection results (optional archive path)
+node scripts/benchmark-preview.mjs       # preview pixel changes; optional archive, e.g. v0.4 for comparison
 ```
 
 The timing harnesses accept `CHROMIUM_PATH` for an existing Chromium executable. Set `BENCH_INTERVALS=4` for the PC run above. For real acceptance testing, check representative occupied **and** vacant views from the intended cameras, including seated/distant people and night lighting; treat weak/obstructed views as uncertain rather than relying on an empty label.
