@@ -1,0 +1,61 @@
+FRAMEWATCH 0.5 — MONITOR YOUR CCTV WALL ON YOUR PC
+
+1. Right-click Framewatch-PC.zip and choose Extract All. Double-click the
+   extracted Framewatch.html in current desktop Microsoft Edge or Google Chrome.
+2. Leave your CCTV viewer open. Click Share screen and select the CCTV window
+   or camera-wall tab, not Framewatch. No audio or camera passwords are needed.
+3. Set columns x rows (up to 4 x 4). Crop away menus or sidebars. Camera 01
+   is at the top left; numbers continue across each row.
+4. Leave Live video selected for motion. Input ~... fps measures received
+   window frames. Framewatch requests 30 fps but cannot add motion missing
+   from iVMS. Last scan shows the checked still with its person boxes.
+   Heavy checks EVERY usable camera with two person models. Checks can take
+   seconds; the live video does not wait. Try Balanced for less CPU use.
+5. Open Vacancy dashboard. Name places lets you label cameras, for example
+   Cabin A. Read Empty from, Last seen empty and Duration for each place.
+   You can filter by place, date or layout, or Export CSV. Switching between
+   Monitor and Vacancy dashboard in this tab keeps analysis running.
+6. Want a reminder? Open Reminders. Switch Live vacancy reminders ON, choose
+   a place (or all cameras) and a delay. For a PC banner too, click Enable
+   desktop notifications, choose Allow, then try Test notification. If desktop
+   banners are blocked, reminders still appear inside Framewatch.
+7. Stop sharing to end monitoring. Reopen this SAME extracted HTML in the SAME
+   browser to see saved periods. Use Clear history to forget them. File storage
+   varies by browser, profile and file path; export CSV before moving the app,
+   clearing browser data, or ending a private browsing session.
+
+REMINDERS WHILE SHARING
+You get one alert per observed empty period, not one per scan. Choose the
+first empty check or a delay of 30 seconds, 1, 5 or 15 minutes. A camera that
+becomes occupied, unclear or loses signal must start a new empty period. Pick
+your cabin again if you reconnect or change the grid. Keep the tab open, the
+PC awake and the camera window shared. There is no phone delivery or
+monitoring when closed. Desktop banners can show place names and times on the
+lock screen; check browser and OS notification settings.
+
+WHAT THE TIMES MEAN
+A period spans actual live checks with no person detected. A single check has
+no measured duration. Times are local to this PC (CSV: UTC), NOT taken from the
+CCTV overlay. The end is the last empty check, not the next person’s arrival.
+Unclear/poor views, interrupted capture and long gaps break the period. Stop
+and reshare if cameras change position in your CCTV viewer. Grid/crop changes
+start a separate layout so names cannot transfer to the wrong place.
+
+Use only screens you are allowed to monitor. Frames stay in memory. No video,
+audio, face identity or images are recorded or uploaded. Only vacancy times,
+status, layout labels and reminder preferences are stored in your browser.
+No installer, server, Node.js, internet connection or account is required.
+
+QUICK CHECK / TROUBLESHOOTING
+- Open image > Example camera grid.webp at 2 x 2 should show 01 and 03
+  occupied, 02 and 04 empty. Stills and the sample NEVER create time periods.
+- Keep Framewatch running and your PC awake. It cannot recover earlier times,
+  see behind an obstruction, or tell if a DVR is replaying an old scene.
+  Empty means no person detected, not proof a cabin was vacant.
+- If movement is choppy, make sure iVMS itself is playing smoothly and its
+   window is not minimized. If only the labels lag, they follow checks, not
+   video frames. Try Balanced or Fast if your PC needs quicker checks.
+- If browser/device policy blocks screen capture, contact your IT admin or
+  use a screenshot for a one-time check. Do not disable security policies.
+- If a detector cannot load, try current Edge or Chrome with WebGL available.
+  A failed scan stays Unclear. Export important history before quitting.

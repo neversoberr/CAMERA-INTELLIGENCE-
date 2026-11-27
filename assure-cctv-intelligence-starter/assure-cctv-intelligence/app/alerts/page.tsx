@@ -1,1 +1,3 @@
-export default function Alerts(){return <main className="main"><div className="eyebrow">Operations</div><h1>Vacancy alerts</h1><section className="section panel"><p>Alerts will appear here after occupancy processing is enabled.</p><span className="pill pending">Awaiting pilot data</span></section></main>}
+import { redirect } from 'next/navigation';
+
+export default function Alerts() { redirect('/#reminders'); }

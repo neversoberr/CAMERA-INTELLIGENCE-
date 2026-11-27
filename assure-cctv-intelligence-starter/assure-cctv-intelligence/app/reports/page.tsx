@@ -1,1 +1,3 @@
-export default function Reports(){return <main className="main"><div className="eyebrow">Analytics</div><h1>Utilisation reports</h1><section className="section panel"><p>Daily, weekly and monthly occupancy reports will be available after real occupancy events are recorded.</p><span className="pill pending">Awaiting pilot data</span></section></main>}
+import { redirect } from 'next/navigation';
+
+export default function Reports() { redirect('/#vacancy'); }

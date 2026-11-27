@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Assure CCTV Intelligence",
-  description: "Central CCTV occupancy monitoring for Assure Clinic"
+  title: "Framewatch · Occupancy Monitor",
+  description: "Check which camera views are occupied or empty, privately in your browser."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
