@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.cache/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+public/vision-runtime/
+
+/test-results/
+/playwright-report/
