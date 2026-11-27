@@ -64,7 +64,7 @@ export function mayReuseNegative(last, signature, region, now) {
 export function zoomWindows(mode, width, height) {
   if (mode === 'fast' || Math.min(width, height) < 96 || Math.max(width, height) < 200) return [];
   const side = 0.62, end = 1 - side;
-  if (mode === 'detail') return [0, end].flatMap(y => [0, end].map(x => ({ x, y, w: side, h: side })));
+  if (mode === 'detail' || mode === 'heavy') return [0, end].flatMap(y => [0, end].map(x => ({ x, y, w: side, h: side })));
   return width >= height ? [0, end].map(x => ({ x, y: 0, w: side, h: 1 })) : [0, end].map(y => ({ x: 0, y, w: 1, h: side }));
 }
 
@@ -85,7 +85,8 @@ export function observations(detections, width, height, region = WHOLE, pass = 0
     if (r <= x || d <= y) { unlocated = true; continue; }
     const clipped = (region.x > 0 && x < 0.02) || (region.y > 0 && y < 0.02) ||
       (region.x + region.w < 0.9999 && r > 0.98) || (region.y + region.h < 0.9999 && d > 0.98);
-    hits.push({ score, pass, clipped, box: { x: region.x + x * region.w, y: region.y + y * region.h, w: (r-x) * region.w, h: (d-y) * region.h } });
+    const whole = region.x === 0 && region.y === 0 && region.w === 1 && region.h === 1;
+    hits.push({ score, pass, whole, clipped, box: { x: region.x + x * region.w, y: region.y + y * region.h, w: (r-x) * region.w, h: (d-y) * region.h } });
   }
   return { hits, unlocated };
 }
@@ -116,14 +117,14 @@ export function resolvePeople(passes) {
   }
   const boxes = []; let best = 0;
   for (const group of groups) {
-    const strong = group.some(h => h.score >= (h.pass === 0 ? 0.35 : h.clipped ? 0.50 : 0.42));
+    const strong = group.some(h => h.score >= (h.whole ? 0.35 : h.clipped ? 0.50 : 0.42));
     const supported = new Set(group.filter(h => h.score >= 0.28 && !h.clipped).map(h => h.pass)).size >= 2;
     if (!strong && !supported) continue;
     boxes.push((group.find(h => !h.clipped) ?? group[0]).box);
     best = Math.max(best, group[0].score);
   }
   if (boxes.length) return { state: 'occupied', reason: 'person', score: best, boxes };
-  if (passes.some(p => p.unlocated) || sorted.some(h => h.score >= (h.pass === 0 ? PERSON_FLOOR : 0.30))) {
+  if (passes.some(p => p.unlocated) || sorted.some(h => h.score >= (h.whole ? PERSON_FLOOR : 0.30))) {
     return { state: 'unclear', reason: 'weak', boxes: [] };
   }
   return { state: 'empty', reason: 'no-person', boxes: [] };

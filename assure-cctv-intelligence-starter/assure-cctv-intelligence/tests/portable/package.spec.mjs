@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { installLiveWall } from '../live-wall.mjs';
 
 let dir, pageURL, example;
 test.beforeAll(async () => {
@@ -25,6 +26,7 @@ test('the extracted HTML analyses the supplied screenshot without a server or ne
   await expect(page.getByRole('link', { name: 'Framewatch home' })).toHaveAttribute('href', pageURL);
   await page.getByLabel('Open camera screenshot').setInputFiles(example);
   await expect(page.locator('.fw-source-tag')).toHaveText('Screenshot');
+  await expect(page.locator('.fw-engine-stats')).toContainText('24 model passes');
   await expect(page.locator('.fw-results-foot')).toContainText('Checked');
   await expect(page.locator('.fw-camera-list .fw-status')).toHaveText(['Occupied', 'Empty', 'Occupied', 'Empty']);
   await page.getByRole('button', { name: 'Empty', exact: true }).click();
@@ -33,6 +35,9 @@ test('the extracted HTML analyses the supplied screenshot without a server or ne
   await page.getByRole('button', { name: 'Detailed', exact: true }).click();
   await expect(page.locator('.fw-engine-stats')).toContainText('20 model passes');
   await expect(page.locator('.fw-camera-list .fw-status')).toHaveText(['Occupied', 'Empty', 'Occupied', 'Empty']);
+  await page.getByRole('link', { name: 'Vacancy dashboard', exact: true }).click();
+  await expect(page.getByText('No empty periods observed yet')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Name places' })).toBeDisabled();
   expect(remote).toEqual([]);
 });
 
@@ -47,4 +52,19 @@ test('a file-origin user gesture can start display capture, update results, and 
   await expect(status).toContainText('Checked');
   await page.getByRole('button', { name: 'Stop sharing' }).click();
   await expect(page.locator('.fw-source-tag')).toHaveText('Sample');
+});
+
+
+test('offline PC history uses real live checks, stops and reopens at the last observation', async ({page,context}) => {
+  const remote=[]; context.on('request', r=>{ if(/^https?:/.test(r.url())) remote.push(r.url()); });
+  await page.goto(pageURL); await installLiveWall(page);
+  await page.getByLabel('Camera grid: columns by rows').selectOption('2x1');
+  await page.getByRole('button',{name:'Share screen'}).click();
+  await expect(page.locator('.fw-engine-stats')).toContainText('12 model passes');
+  await page.getByRole('link',{name:'Vacancy dashboard',exact:true}).click();
+  const rows=page.locator('.fw-log-table tbody tr'); await expect(rows).toHaveCount(2);
+  await page.getByRole('button',{name:'Stop sharing'}).click(); await expect(rows.first()).toContainText('Monitoring ended');
+  const times=()=>rows.locator('time').evaluateAll(times=>times.map(t=>t.dateTime)); const before=await times();
+  await page.reload(); await expect(rows).toHaveCount(2); expect(await times()).toEqual(before);
+  await expect(page.getByRole('button',{name:'Share screen'})).toBeVisible(); expect(remote).toEqual([]);
 });

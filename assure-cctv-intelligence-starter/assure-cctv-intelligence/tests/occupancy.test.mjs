@@ -39,7 +39,7 @@ test('small local changes, ambiguous readings and TTL force neural checks; hits 
 });
 
 test('profile budgets are finite and zoom windows cover the whole tile, including seams', () => {
-  for (const [w,h] of [[600,400],[360,640]]) for (const [mode,n] of [['fast',0],['balanced',2],['detail',4]]) {
+  for (const [w,h] of [[600,400],[360,640]]) for (const [mode,n] of [['fast',0],['balanced',2],['detail',4],['heavy',4]]) {
     const windows = zoomWindows(mode,w,h); assert.equal(windows.length,n);
     if(n) for(let i=0;i<=100;i++) for(let j=0;j<=100;j++) assert.ok(windows.some(r=>r.x<=i/100&&r.y<=j/100&&r.x+r.w>=i/100&&r.y+r.h>=j/100));
   }
@@ -80,4 +80,11 @@ test('weak crop-edge partials need stronger support and do not duplicate a whole
   const full = scan([det('person',0.39,40,10,14,55)]);
   const supported = resolvePeople([full, scan([det('person',0.56,42,0,10,38)], lower, 2)]);
   assert.equal(supported.boxes.length,1); assert.deepEqual(supported.boxes[0],full.hits[0].box);
+});
+
+// Each whole-camera model in Heavy uses whole-view (not clipped-zoom) evidence rules.
+test('second whole-view detector respects weak evidence and corroborates the first model', () => {
+  assert.equal(resolvePeople([scan([det('person',0.24)],WHOLE,1)]).state,'unclear');
+  assert.equal(resolvePeople([scan([det('person',0.36)],WHOLE,1)]).state,'occupied');
+  assert.equal(resolvePeople([scan([det('person',0.30)]),scan([det('person',0.29)],WHOLE,1)]).boxes.length,1);
 });

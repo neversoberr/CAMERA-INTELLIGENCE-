@@ -1,10 +1,12 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { watchFrames } from '@/lib/monitor/live-frames';
 import { DEMO, type Source } from '@/lib/monitor/types';
 
 type Notice = { text: string; sharing?: boolean; info?: boolean } | null;
 function release(source: Source) {
   if (source.kind !== 'screen') return;
+  source.clock.close();
   source.stream.getTracks().forEach(track => track.stop());
   source.video.pause(); source.video.srcObject = null;
 }
@@ -46,11 +48,11 @@ export function useSource(onRestoreSample: () => void) {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 4, max: 6 } }, audio: false });
       const video = document.createElement('video'); video.muted = true; video.playsInline = true;
-      candidate = { kind: 'screen', video, stream };
+      const track = stream.getVideoTracks()[0];
+      if (!track) { stream.getTracks().forEach(t => t.stop()); throw new Error('No video track'); }
+      candidate = { kind: 'screen', video, stream, clock: watchFrames(video, track) };
       if (id !== ticket.current) return;
       pendingScreen.current = candidate; video.srcObject = stream;
-      const track = stream.getVideoTracks()[0];
-      if (!track) throw new Error('No video track');
       const next = candidate;
       track.addEventListener('ended', () => {
         if (active.current === next) clear();

@@ -38,6 +38,8 @@ try {
       paint(); const stream = c.captureStream(4); setInterval(paint, 250); requestAnimationFrame(paint); return stream;
     } });
   }, Number(process.env.BENCH_INTERVALS || 8));
+  const label = { fast: 'Fast', balanced: 'Balanced', detail: 'Detailed', heavy: 'Heavy' }[process.env.SCAN_MODE];
+  if (label) await page.getByRole('button',{name:label,exact:true}).click();
   await page.getByRole('button',{name:'Share screen'}).click();
   const samples = await page.evaluate(() => window.benchResults);
   await page.getByRole('button',{name:'Stop sharing'}).click();

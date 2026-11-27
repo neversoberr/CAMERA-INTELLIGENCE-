@@ -1,37 +1,44 @@
-FRAMEWATCH 0.2 — RUN IT ON YOUR PC
+FRAMEWATCH 0.3 — MONITOR YOUR CCTV WALL ON YOUR PC
 
-1. If you are viewing the ZIP, close it, right-click Framewatch-PC.zip and
-   choose Extract All. Open the extracted folder.
-2. Double-click Framewatch.html. If necessary, right-click it and choose
-   Open with > Microsoft Edge or Google Chrome. Use a current desktop browser.
-3. Leave your CCTV viewer open. In Framewatch, click Share screen. Select the
-   CCTV window (or the browser tab with the cameras), not Framewatch, and
-   confirm Share in the browser prompt.
-4. Choose the grid to match your screen: 2 x 2 means two columns and two rows.
-   Use the crop tool if the camera viewer has menus or sidebars. Camera 01 is
-   the upper-left view. Numbers run across each row.
-5. Under Person detector, start with Balanced. If people look small in a
-   distant view, try Detailed or enlarge the camera in the CCTV viewer. Use
-   Fast on a slower PC. Last scan shows the actual time taken on your PC.
-6. Read Camera status. Occupied means a person was detected. Empty means no
-   person was detected, not proof that no one is there. Unclear means the
-   view could not be classified reliably. On live video, Confirming vacancy
-   means a second clear frame is needed. Click Stop sharing to finish.
+1. Right-click Framewatch-PC.zip and choose Extract All. Double-click the
+   extracted Framewatch.html in current desktop Microsoft Edge or Google Chrome.
+2. Leave your CCTV viewer open. Click Share screen and select the CCTV window
+   or camera-wall tab, not Framewatch. No audio or camera passwords are needed.
+3. Set columns x rows (up to 4 x 4). Crop away menus or sidebars. Camera 01
+   is at the top left; numbers continue across each row.
+4. Heavy is on by default. Every sweep runs TWO person models on EVERY usable
+   camera and checks overlapping close-ups when there are enough pixels.
+   Scanning a large wall can take seconds. See sweep progress and Last scan.
+   On a slow PC, Balanced, Detailed and Fast remain available.
+5. Open Vacancy dashboard. Name places lets you label cameras, for example
+   Cabin A. Read Empty from, Last seen empty and Duration for each place.
+   You can filter by place, date or layout, or Export CSV. Switching between
+   Monitor and Vacancy dashboard in this tab keeps analysis running.
+6. Stop sharing to end monitoring. Reopen this SAME extracted HTML in the SAME
+   browser to see saved periods. Use Clear history to forget them. File storage
+   varies by browser, profile and file path; export CSV before moving the app,
+   clearing browser data, or ending a private browsing session.
 
-NOTHING TO INSTALL
-This is a local browser app. No command prompt, Node.js, account, access token,
-web server, camera password, or internet connection is needed for analysis.
-The sample shown at launch is an example, not your cameras. Screen capture
-starts only when you choose a source. Close the tab to quit. To use it again,
-open the same Framewatch.html file. You can create a desktop shortcut to it.
+WHAT THE TIMES MEAN
+A period spans actual live checks with no person detected. A single check has
+no measured duration. Times are local to this PC (CSV: UTC), NOT taken from the
+CCTV overlay. The end is the last empty check, not the next person’s arrival.
+Unclear/poor views, interrupted capture and long gaps break the period. Stop
+and reshare if cameras change position in your CCTV viewer. Grid/crop changes
+start a separate layout so names cannot transfer to the wrong place.
+
+Use only screens you are allowed to monitor. Frames stay in memory. No video,
+audio, face identity or images are recorded or uploaded. Only vacancy times,
+status and layout labels are stored in your browser. No installer, server,
+Node.js, internet connection or account is required.
 
 QUICK CHECK / TROUBLESHOOTING
-- Click Open image and choose the included Example camera grid.webp. Set the
-  grid to 2 x 2. It should show 01 and 03 occupied and 02 and 04 empty.
-- If a browser or company policy does not allow live screen sharing, use
-  Open image with a screenshot, or ask your IT administrator. Do not change
-  security settings to bypass a restriction.
-- If the local detector cannot run, try a current Edge or Chrome browser
-  with WebGL available. Do not treat an unclear or frozen view as empty.
-- This HTML file contains the person detector and its runtime. Frames stay
-  in memory in the browser. No video/audio is uploaded or recorded.
+- Open image > Example camera grid.webp at 2 x 2 should show 01 and 03
+  occupied, 02 and 04 empty. Stills and the sample NEVER create time periods.
+- Keep Framewatch running and your PC awake. It cannot recover earlier times,
+  see behind an obstruction, or tell if a DVR is replaying an old scene.
+  Empty means no person detected, not proof a cabin was vacant.
+- If browser/device policy blocks screen capture, contact your IT admin or
+  use a screenshot for a one-time check. Do not disable security policies.
+- If a detector cannot load, try current Edge or Chrome with WebGL available.
+  A failed scan stays Unclear. Export important history before quitting.

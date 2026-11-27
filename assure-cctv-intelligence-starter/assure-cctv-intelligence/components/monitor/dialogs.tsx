@@ -4,7 +4,7 @@ import { Check, Crop, Download, Grid2X2, LockKeyhole, MonitorUp, RotateCcw, Scan
 import { PC_DOWNLOAD } from '@/lib/monitor/platform';
 import { FULL, sourceElement, takeFrame, type Source, type Rect } from '@/lib/monitor/types';
 
-function Dialog({ title, eyebrow, onClose, children, wide = false }: { title: string; eyebrow: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+export function Dialog({ title, eyebrow, onClose, children, wide = false }: { title: string; eyebrow: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null), id = useId();
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
   return <dialog ref={ref} className={`fw-dialog ${wide ? 'fw-dialog-wide' : ''}`} aria-labelledby={id}
@@ -23,9 +23,10 @@ export function Guide({ onClose }: { onClose: () => void }) {
       <li><MonitorUp/><div><h3>Choose your camera screen</h3><p>Share the window or tab containing your CCTV grid, not this monitor. You can also open a PNG, JPG, or WebP screenshot.</p></div></li>
       <li><Grid2X2/><div><h3>Match the grid</h3><p>Choose columns × rows and crop out menus or borders. Cameras are numbered from left to right, starting with the top row.</p></div></li>
       <li><ScanLine/><div><h3>Read the camera status</h3><p>Occupied means a person was detected. Empty means none was detected, not proof the room is empty. A weak signal or poor view stays unclear. On a live feed, a recent person signal needs two fresh negative checks to clear.</p></div></li>
-      <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Start with Balanced. For distant people, try Detailed or enlarge the camera in your CCTV viewer. Fast skips the close-up checks on slower PCs.</p></div></li>
+      <li><ScanLine/><div><h3>Choose a detection mode</h3><p>Heavy checks every usable camera with two person models and overlapping close-ups. For faster updates, try Balanced or Fast. Only one frame is analysed at a time.</p></div></li>
+      <li><Grid2X2/><div><h3>Review empty periods</h3><p>Open Vacancy dashboard while sharing or afterwards. Use Name places to label cabins. Each period ends at the last observed empty frame. If you rearrange cameras in the viewer, stop sharing and start a new layout.</p></div></li>
     </ol>
-    <div className="fw-guide-note"><LockKeyhole size={17}/><span>Frames stay in this browser. Screen sharing has no audio and can be stopped at any time.</span></div>
+    <div className="fw-guide-note"><LockKeyhole size={17}/><span>Frames are never saved. Only vacancy times and optional place names are kept in this browser. Export or clear them in the dashboard.</span></div>
     <div className="fw-dialog-actions">
       {PC_DOWNLOAD && <a className="fw-btn" href={PC_DOWNLOAD} download><Download size={15}/>Download for PC</a>}
       <button className="fw-btn fw-primary" onClick={onClose}>Got it <Check size={16}/></button>

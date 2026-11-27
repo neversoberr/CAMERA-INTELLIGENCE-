@@ -34,13 +34,14 @@ try {
     const image = new Image(); image.src = '/demo/camera-wall.webp'; await image.decode(); window.sampleImage = image;
   }, mode);
   const median = nums => nums.toSorted((a, b) => a - b)[Math.floor(nums.length / 2)];
-  const lab = await page.evaluate(async () => {
+  const gridRuns = Number(process.env.BENCH_GRID_RUNS || 12);
+  const lab = await page.evaluate(async runs => {
     const wall = window.sampleImage, canvas = document.createElement('canvas');
     canvas.width = wall.width; canvas.height = wall.height;
     const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
     const out = { static: [], changing: [] };
     for (const scene of ['static', 'changing']) {
-      for (let i = 0; i <= 12; i++) {
+      for (let i = 0; i <= runs; i++) {
         ctx.drawImage(wall, 0, 0);
         // Swap the two top views every other pass; two views stay fixed.
         if (scene === 'changing' && i % 2) {
@@ -53,7 +54,7 @@ try {
       }
     }
     return out;
-  });
+  }, gridRuns);
   for (const [scene, samples] of Object.entries(lab)) console.log(`${scene} 2×2: warm median ${median(samples).toFixed(1)} ms, mean ${(samples.reduce((a,b) => a+b, 0)/samples.length).toFixed(1)} ms (${samples.length} passes)`);
   const dir = process.env.COCO_DIR;
   if (dir) {

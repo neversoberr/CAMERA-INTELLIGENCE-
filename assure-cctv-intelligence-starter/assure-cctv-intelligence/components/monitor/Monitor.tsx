@@ -1,7 +1,7 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  Activity, Download, BookOpen, Cctv, ChevronDown,
+  Activity, ArrowRight, Clock3, Download, BookOpen, Cctv, ChevronDown,
   CircleDashed, Crop, Expand, Grid2X2, Image as ImageIcon, Info, Layers2,
   LoaderCircle, LockKeyhole, Monitor as MonitorIcon, MonitorUp, Radio, Scan, ScanLine, SlidersHorizontal,
   ShieldCheck, Square, Upload, UsersRound, X,
@@ -16,6 +16,8 @@ import { HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
 import { CropDialog, Guide } from './dialogs';
 import { useSource } from './use-source';
 import { useAnalysis } from './use-analysis';
+import { VacancyJournal } from '@/lib/monitor/vacancy';
+import { VacancyDashboard } from './VacancyDashboard';
 
 type Icon = typeof Cctv;
 type Filter = 'all' | Exclude<State, 'checking'>;
@@ -104,12 +106,12 @@ function CameraWall({ source, grid, setGrid, crop, onCrop, analysis, onCloseSour
     </div></div>
     <div className="fw-wall-foot"><span className="fw-source-name">{source.kind === 'screen' ? <MonitorUp size={14}/> : <ImageIcon size={14}/>}<span title={sourceName(source)}>{sourceName(source)}</span>
       {source.kind !== 'demo' && <button className="fw-clear" onClick={onCloseSource} aria-label="Disconnect source" title="Disconnect source"><X size={13}/></button>}</span>
-      <span className="fw-frame-note">{phase === 'checking' ? <><LoaderCircle className="fw-spin" size={13}/>Analysing…</> : phase === 'error' ? 'Analysis unavailable' : phase === 'no-frame' ? 'No frame' : source.kind === 'screen' ? <><Radio size={13}/>Auto-updating</> : <><Layers2 size={13}/>Still frame</>}</span>
+      <span className="fw-frame-note">{analysis.progress ? <><LoaderCircle className="fw-spin" size={13}/>Heavy sweep · {analysis.progress.camera}/{analysis.progress.total}</> : phase === 'checking' ? <><LoaderCircle className="fw-spin" size={13}/>Analysing…</> : phase === 'error' ? 'Analysis unavailable' : phase === 'no-frame' ? 'No frame' : source.kind === 'screen' ? <><Radio size={13}/>Auto-updating</> : <><Layers2 size={13}/>Still frame</>}</span>
     </div>
   </section>;
 }
 
-function Results({ readings, grid, sampleLayout, phase, checkedAt }: { readings: Reading[]; grid: Grid; sampleLayout: boolean; phase: string; checkedAt?: number }) {
+function Results({ readings, grid, names, sampleLayout, phase, checkedAt }: { names?: string[]; readings: Reading[]; grid: Grid; sampleLayout: boolean; phase: string; checkedAt?: number }) {
   const [filter, setFilter] = useState<Filter>('all');
   const entries = readings.map((reading, i) => ({ reading, i })).filter(({ reading }) => filter === 'all' || reading.state === filter);
   const filters: Filter[] = ['all', 'occupied', 'empty'];
@@ -119,7 +121,7 @@ function Results({ readings, grid, sampleLayout, phase, checkedAt }: { readings:
     <div className="fw-filters" role="group" aria-label="Filter camera results">{filters.map(f => <button key={f} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'all' ? 'All views' : stateLabel[f]}</button>)}</div>
     <ul className="fw-camera-list" aria-label="Per-camera occupancy">{entries.map(({ reading, i }) => <li key={i}>
       <div className={`fw-list-icon ${reading.state}`}><Cctv size={20} strokeWidth={1.65}/></div>
-      <div className="fw-camera-name"><strong>Camera {twoDigits(i + 1)}</strong><span>{sampleLayout ? SAMPLE_NAMES[i] : `Row ${Math.floor(i / grid.cols) + 1} · Column ${i % grid.cols + 1}`}</span>
+      <div className="fw-camera-name"><strong>Camera {twoDigits(i + 1)}</strong><span>{sampleLayout ? SAMPLE_NAMES[i] : names?.[i] || `Row ${Math.floor(i / grid.cols) + 1} · Column ${i % grid.cols + 1}`}</span>
         {reading.state === 'unclear' && <small>{reading.reason === 'weak' ? 'Weak person signal' : reading.reason === 'confirming-empty' ? 'Confirming vacancy' : reading.reason === 'poor-view' ? 'Poor visibility' : 'No reliable result'}</small>}</div>
       <Status state={reading.state} title={reading.score != null ? `Person model score ${reading.score.toFixed(2)} (not an accuracy estimate)` : undefined}/>
     </li>)}{!entries.length && <li className="fw-no-results"><Scan size={22}/>{`No ${filter} views in this result.`}</li>}</ul>
@@ -134,18 +136,20 @@ function DetectorPanel({ mode, setMode, stats }: { mode: DetectionMode; setMode:
       <button key={m} aria-pressed={m === mode} onClick={() => setMode(m)}>{PROFILES[m].label}</button>
     )}</div>
     <p>{PROFILES[mode].note}</p>
-    {stats && <div className="fw-engine-stats" title="Worker processing time, excluding model load and screen capture"><span>Last scan <b>{stats.scanMs} ms</b></span><span>{stats.inferences} model {stats.inferences === 1 ? 'pass' : 'passes'}{stats.reused > 0 ? ` · ${stats.reused} unchanged` : ''}</span></div>}
+    {stats && <div className="fw-engine-stats" title="Worker processing time, excluding model load and screen capture"><span>Last scan <b>{stats.scanMs} ms</b></span><span>{stats.inferences} model {stats.inferences === 1 ? 'pass' : 'passes'}{stats.reused > 0 ? ` · ${stats.reused} unchanged` : ''}</span>{mode === 'heavy' && <span className="fw-covered">{stats.scanned}/{stats.total} views freshly scanned{stats.scanned < stats.total ? ' · remaining views unclear' : ''}</span>}</div>}
   </section>;
 }
 
-function Workspace({ source, grid, setGrid, mode, setMode, onCloseSource }: { source: Source; grid: Grid; setGrid: (g: Grid) => void; mode: DetectionMode; setMode: (m: DetectionMode) => void; onCloseSource: () => void }) {
+function Workspace({ source, grid, setGrid, mode, setMode, onCloseSource, journal }: { journal: VacancyJournal; source: Source; grid: Grid; setGrid: (g: Grid) => void; mode: DetectionMode; setMode: (m: DetectionMode) => void; onCloseSource: () => void }) {
   const [crop, setCrop] = useState<Rect>(FULL), [cropping, setCropping] = useState(false);
-  const analysis = useAnalysis(source, grid, crop, mode);
+  const analysis = useAnalysis(source, grid, crop, mode, journal);
+  const history = useSyncExternalStore(journal.subscribe, journal.snapshot, journal.snapshot);
+  const names = history.layouts.find(l => l.id === history.active)?.names;
   return <>
     <Stats readings={analysis.readings}/>
     {analysis.phase === 'error' && <div className="fw-notice" role="alert"><Info size={17}/><span>The local detector could not run. Use a recent desktop browser with WebGL enabled. No views have been marked empty.</span><button onClick={analysis.retry}>Retry analysis</button></div>}
     <div className="fw-workspace"><CameraWall source={source} grid={grid} setGrid={setGrid} crop={crop} onCrop={() => setCropping(true)} analysis={analysis} onCloseSource={onCloseSource}/>
-      <aside className="fw-aside"><Results readings={analysis.readings} grid={grid} sampleLayout={isSampleLayout(source, grid, crop)} phase={analysis.phase} checkedAt={analysis.checkedAt}/>
+      <aside className="fw-aside"><Results readings={analysis.readings} grid={grid} names={names} sampleLayout={isSampleLayout(source, grid, crop)} phase={analysis.phase} checkedAt={analysis.checkedAt}/>
         <DetectorPanel mode={mode} setMode={setMode} stats={analysis.stats}/>
       </aside>
     </div>
@@ -155,29 +159,41 @@ function Workspace({ source, grid, setGrid, mode, setMode, onCloseSource }: { so
 
 export default function Monitor() {
   const [grid, setGrid] = useState<Grid>(DEFAULT_GRID), [guide, setGuide] = useState(false);
-  const [mode, setMode] = useState<DetectionMode>('balanced');
+  const [mode, setMode] = useState<DetectionMode>('heavy');
+  const [journal] = useState(() => new VacancyJournal()), [dashboard, setDashboard] = useState(false);
+  useEffect(() => {
+    try { journal.attach(window.localStorage); } catch { journal.attach(null); }
+    const navigate = () => { setDashboard(window.location.hash === '#vacancy'); window.scrollTo(0, 0); };
+    const finish = () => { const id = journal.snapshot().active; if (id) journal.finish(id); };
+    navigate(); window.addEventListener('hashchange', navigate); window.addEventListener('pagehide', finish);
+    return () => { window.removeEventListener('hashchange', navigate); window.removeEventListener('pagehide', finish); finish(); };
+  }, [journal]);
   const restoreSample = useCallback(() => setGrid(DEFAULT_GRID), []);
   const input = useSource(restoreSample), fileInput = useRef<HTMLInputElement>(null);
   return <div className="fw">
     <header className="fw-top"><div className="fw-container fw-top-inner">
       <a href={HOME_URL} className="fw-brand" aria-label="Framewatch home"><BrandMark/><span>Framewatch</span></a>
-      <span className="fw-nav-sep"/><span className="fw-nav-current"><span/>Monitor</span>
+      <span className="fw-nav-sep"/><nav className="fw-views" aria-label="Workspace views"><a href="#monitor" aria-current={!dashboard ? 'page' : undefined}>Monitor</a><a href="#vacancy" aria-current={dashboard ? 'page' : undefined}>Vacancy dashboard</a></nav>
       <div className="fw-top-right"><span className="fw-local"><ShieldCheck size={15}/>On-device</span><span className="fw-nav-sep"/>
         <button className="fw-guide-btn" onClick={() => setGuide(true)}><BookOpen size={16}/>Quick guide</button></div>
     </div></header>
     <main className="fw-container fw-main">
-      <div className="fw-hero"><div><div className="fw-eyebrow"><span className="fw-eyebrow-line"/>VISION WORKSPACE</div><h1>Occupancy monitor</h1>
-        <p>Share your CCTV screen or open an image to see which camera views are occupied.</p></div>
+      <div className="fw-hero"><div><div className="fw-eyebrow"><span className="fw-eyebrow-line"/>{dashboard ? 'OBSERVATION HISTORY' : 'VISION WORKSPACE'}</div><h1>{dashboard ? 'Vacancy dashboard' : 'Occupancy monitor'}</h1>
+        <p>{dashboard ? 'See when each cabin or place was observed empty during live monitoring.' : 'Share your CCTV screen or open an image to see which camera views are occupied.'}</p></div>
         <div className="fw-actions"><input ref={fileInput} type="file" className="fw-hidden" aria-label="Open camera screenshot" accept="image/png,image/jpeg,image/webp" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void input.openImage(file); }}/>
-          <button className="fw-btn" disabled={input.picking} onClick={() => fileInput.current?.click()}><Upload size={16}/>Open image</button>
+          {dashboard ? <a href="#monitor" className="fw-btn"><MonitorIcon size={16}/>View monitor</a> : <button className="fw-btn" disabled={input.picking} onClick={() => fileInput.current?.click()}><Upload size={16}/>Open image</button>}
           {input.source.kind === 'screen' ? <button className="fw-btn fw-stop" onClick={input.clear}><Square size={14}/>Stop sharing</button> : <button className="fw-btn fw-primary" onClick={input.share} disabled={input.picking}>{input.picking ? <LoaderCircle size={17} className="fw-spin"/> : <MonitorUp size={17}/>}Share screen</button>}
         </div>
       </div>
       {input.notice && <div className={`fw-notice ${input.notice.info ? 'info' : ''}`} role={input.notice.info ? 'status' : 'alert'}><Info size={17}/><span>{input.notice.text}</span>
         {input.notice.sharing && PC_DOWNLOAD && <a href={PC_DOWNLOAD} download>Download PC copy <Download size={13}/></a>}
         <button className="fw-icon-btn" aria-label="Dismiss message" onClick={() => input.setNotice(null)}><X size={16}/></button></div>}
-      <Workspace key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
-      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Your camera frames are analysed locally. Nothing is recorded or uploaded.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
+      {/* Changing dashboard tabs must not unmount the live source, canvas or worker. */}
+      <div hidden={dashboard}><Workspace journal={journal} key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
+        <a className="fw-history-link" href="#vacancy"><Clock3 size={19}/><span><strong>Vacancy history</strong> See the first and last empty check for each place.</span><ArrowRight size={16}/></a>
+      </div>
+      {dashboard && <VacancyDashboard journal={journal} sharing={input.source.kind === 'screen'}/>}
+      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Frames stay on this device and are never saved or uploaded. Only vacancy history is stored locally.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
     </main>
     <footer className="fw-container fw-footer"><span><BrandMark small/> Framewatch <b>/</b> Assure Intelligence</span><span className="fw-footer-label"><i/> LOCAL VISION ENGINE</span></footer>
     {guide && <Guide onClose={() => setGuide(false)}/>}

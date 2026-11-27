@@ -10,6 +10,8 @@ test('checks a local image, filters the result and rechecks a cropped grid', asy
   await page.getByLabel('Open camera screenshot').setInputFiles(wall);
   await expect(page.locator('.fw-source-tag')).toHaveText('Screenshot');
   await expect(states(page)).toHaveText(expected);
+  await expect(page.getByRole('button', { name: 'Heavy', exact: true })).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.fw-engine-stats')).toContainText('24 model passes');
   await page.getByRole('button', { name: 'Empty', exact: true }).click();
   await expect(page.locator('.fw-camera-name strong')).toHaveText(['Camera 02', 'Camera 04']);
   await page.getByRole('button', { name: 'All views' }).click();
@@ -23,7 +25,7 @@ test('checks a local image, filters the result and rechecks a cropped grid', asy
 });
 
 test('a detector failure never means empty and can be retried', async ({ context, page }) => {
-  const model = '**/models/efficientdet-lite0.tflite';
+  const model = '**/models/efficientdet-lite2-int8.tflite';
   await context.route(model, route => route.fulfill({ status: 503, body: 'unavailable' }));
   await page.goto('/');
   await page.getByLabel('Open camera screenshot').setInputFiles(wall);
@@ -45,8 +47,12 @@ test('a shared MediaStream is rechecked and its track is released on stop', asyn
     Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', { configurable: true, value: async ({ audio }) => {
       if (audio !== false) throw new Error('Unexpected audio capture');
       const stream = canvas.captureStream(2); window.testTrack = stream.getVideoTracks()[0];
-      window.blankStream = () => ctx.fillRect(0, 0, canvas.width, canvas.height);
-      requestAnimationFrame(() => ctx.drawImage(img, 0, 0)); return stream;
+      let blank = false; window.blankStream = () => { blank = true; };
+      const timer = setInterval(() => {
+        if (window.testTrack.readyState === 'ended') clearInterval(timer);
+        else if (blank) ctx.fillRect(0, 0, canvas.width, canvas.height);
+        else ctx.drawImage(img, 0, 0);
+      }, 300); return stream;
     } });
   });
   await page.getByRole('button', { name: 'Share screen' }).click();

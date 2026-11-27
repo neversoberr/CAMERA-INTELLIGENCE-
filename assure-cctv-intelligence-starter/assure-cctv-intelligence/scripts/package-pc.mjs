@@ -30,6 +30,7 @@ const assets = {
     wasmBinaryPath: await dataURL(`${runtime}/wasm/vision_wasm_internal.wasm`, 'application/wasm'),
   },
   model: await dataURL('public/models/efficientdet-lite0.tflite', 'application/octet-stream'),
+  heavyModel: await dataURL('public/models/efficientdet-lite2-int8.tflite', 'application/octet-stream'),
 };
 const worker = `self.framewatchBundledAssets=${JSON.stringify(assets)};\n${await read('public/occupancy/worker.js')}`;
 // In particular, neither the page nor its blob worker may fetch from the network.
