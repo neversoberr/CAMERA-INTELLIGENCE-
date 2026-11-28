@@ -97,3 +97,8 @@ test('the extracted PC wall plays moving pixels while Heavy is busy, without net
   expect(await page.evaluate(() => window.previewProbe.track.readyState)).toBe('ended');
   expect(remote).toEqual([]);
 });
+
+test('standalone file retains its offline policy and never prompts for Frigate passwords',async({page,context})=>{
+ const remote=[];context.on('request',r=>{if(/^https?:/.test(r.url()))remote.push(r.url())});await page.goto(pageURL+'#frigate');await expect(page.getByRole('heading',{name:'Frigate recorder'})).toBeVisible();await expect(page.getByLabel('Frigate username')).toHaveCount(0);
+ expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).toContain('connect-src data: blob:;');await page.getByRole('button',{name:'Explore sample recorder'}).click();await expect(page.getByText('Illustrated data · not connected')).toBeVisible();expect(remote).toEqual([]);
+});

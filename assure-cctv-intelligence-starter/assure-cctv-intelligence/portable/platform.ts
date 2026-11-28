@@ -17,3 +17,5 @@ export function createAnalysisWorker() {
   workerURL ??= URL.createObjectURL(new Blob([takePayload('fw-worker')], { type: 'text/javascript' }));
   return new Worker(workerURL);
 }
+export const DESKTOP_RECORDER = location.protocol === 'http:' && location.hostname === '127.0.0.1' &&
+  /^\/app\/[0-9a-f]{48}\/$/.test(location.pathname) && document.querySelector('meta[name="framewatch-runtime"]')?.getAttribute('content') === 'desktop';

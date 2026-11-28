@@ -1,4 +1,32 @@
-FRAMEWATCH 0.6 — MONITOR YOUR CCTV WALL ON YOUR PC
+FRAMEWATCH 0.7 — WINDOWS CAMERA DESK
+
+FRIGATE RECORDER (WINDOWS 10/11 x64)
+1. Extract All. On the PC that can already reach your Frigate dashboard,
+   double-click Framewatch.exe. Keep Framewatch.html beside it. No installer,
+   Node.js, Go, administrator access, cloud account or camera passwords needed.
+   This unsigned launcher opens an Edge/Chrome app window, or your browser.
+   Follow your organisation's software policy; do not disable security checks.
+2. In Frigate, enter your running recorder's HTTPS dashboard address (often
+   port 8971), not the GitHub URL. Sign in with a Frigate viewer account.
+   Do not paste passwords into chat. The HTTPS name/certificate must be trusted.
+   For a private CA, ask IT for its PUBLIC CA certificate; put it beside the
+   EXE as frigate-ca.pem and restart. Never place a private key here.
+3. Select a camera. The default picture is a snapshot, not a live stream.
+   Watch live uses Frigate/go2rtc WebRTC over the site LAN. Select another
+   configured stream if necessary. Use Stop live view to return to a still.
+4. Filter the latest 60 detections by camera, object or clip availability.
+   Review opens the event snapshot or retained clip. Camera FPS and events
+   refresh every 15 seconds while the recorder tab is visible. No events is
+   NOT a vacancy result. Switch to Monitor for the existing iVMS workflow.
+5. Disconnect to forget the recorder login. Use Quit desktop app (power icon)
+   to stop the launcher, live view and monitoring in this window. Closing only the browser window
+   leaves the launcher running. Never share its private loopback URL.
+
+If HTTPS login or playback fails: check the same address on this PC; Frigate
+native authentication, camera permissions, recording retention, H.264 support
+and LAN WebRTC candidates matter. Never expose unauthenticated recorder ports.
+
+OFFLINE iVMS / SCREEN MONITOR
 
 1. Right-click Framewatch-PC.zip and choose Extract All. Double-click the
    extracted Framewatch.html in current desktop Microsoft Edge or Google Chrome.
@@ -45,7 +73,7 @@ start a separate layout so names cannot transfer to the wrong place.
 Use only screens you are allowed to monitor. Frames stay in memory. No video,
 audio, face identity or images are recorded or uploaded. Only vacancy times,
 status, layout labels and reminder preferences are stored in your browser.
-No installer, server, Node.js, internet connection or account is required.
+The offline HTML needs no launcher, server, internet connection or account.
 
 QUICK CHECK / TROUBLESHOOTING
 - Open image > Example camera grid.webp at 2 x 2 should show 01 and 03

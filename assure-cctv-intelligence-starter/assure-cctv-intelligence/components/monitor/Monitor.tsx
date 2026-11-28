@@ -12,7 +12,7 @@ import {
   DEFAULT_GRID, FULL, isFull, isSampleLayout, PROFILES, SAMPLE_NAMES, sourceName, stateLabel, twoDigits,
   type DetectionMode, type Grid, type Reading, type Rect, type ScanStats, type Source, type State,
 } from '@/lib/monitor/types';
-import { HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
+import { DESKTOP_RECORDER, HOME_URL, PC_DOWNLOAD, SAMPLE_URL } from '@/lib/monitor/platform';
 import { CropDialog, Guide } from './dialogs';
 import { useSource } from './use-source';
 import { useAnalysis } from './use-analysis';
@@ -20,10 +20,13 @@ import { CaptureRateControl } from './CaptureRateControl';
 import { useLivePreview } from './use-live-preview';
 import { VacancyJournal } from '@/lib/monitor/vacancy';
 import { VacancyDashboard } from './VacancyDashboard';
+import { DesktopExit } from '../recorder/DesktopExit';
+import { RecorderWorkspace } from '../recorder/RecorderWorkspace';
 import { Reminders } from './Reminders';
 
 const VIEWS = {
   monitor: { tab: 'Monitor', eyebrow: 'VISION WORKSPACE', title: 'Occupancy monitor', intro: 'Share your CCTV screen or open an image to see which camera views are occupied.' },
+  frigate: { tab: 'Frigate', eyebrow: 'RECORDER WORKSPACE', title: 'Frigate recorder', intro: 'Watch your site cameras and review detections from your Frigate NVR.' },
   vacancy: { tab: 'Vacancy dashboard', eyebrow: 'OBSERVATION HISTORY', title: 'Vacancy dashboard', intro: 'See when each cabin or place was observed empty during live monitoring.' },
   reminders: { tab: 'Reminders', eyebrow: 'LOCAL NOTIFICATIONS', title: 'Empty-cabin reminders', intro: 'Choose when and where to be notified that no person was detected in a cabin.' },
 } as const;
@@ -185,7 +188,7 @@ export default function Monitor() {
   useEffect(() => {
     try { journal.attach(window.localStorage); } catch { journal.attach(null); }
     const navigate = () => {
-      const hash = window.location.hash.slice(1); setView(hash === 'vacancy' || hash === 'reminders' ? hash : 'monitor'); window.scrollTo(0, 0);
+      const hash = window.location.hash.slice(1); setView(hash === 'vacancy' || hash === 'reminders' || hash === 'frigate' ? hash : 'monitor'); window.scrollTo(0, 0);
     };
     const finish = () => { const id = journal.snapshot().active; if (id) journal.finish(id); };
     navigate(); window.addEventListener('hashchange', navigate); window.addEventListener('pagehide', finish);
@@ -193,20 +196,23 @@ export default function Monitor() {
   }, [journal]);
   const restoreSample = useCallback(() => setGrid(DEFAULT_GRID), []);
   const input = useSource(restoreSample), fileInput = useRef<HTMLInputElement>(null);
+  const [closed,setClosed]=useState(false);
+  if(closed)return <main className="fw"><div className="fw-container fw-main"><h1>Framewatch has closed</h1><p>The recorder session ended. Close this window and run Framewatch.exe to start again.</p></div></main>;
   return <div className="fw">
     <header className="fw-top"><div className="fw-container fw-top-inner">
       <a href={HOME_URL} className="fw-brand" aria-label="Framewatch home"><BrandMark/><span>Framewatch</span></a>
       <span className="fw-nav-sep"/><nav className="fw-views" aria-label="Workspace views">{(Object.keys(VIEWS) as View[]).map(v =>
         <a key={v} href={`#${v}`} aria-current={view === v ? 'page' : undefined}>{VIEWS[v].tab}</a>)}</nav>
-      <div className="fw-top-right"><span className="fw-local"><ShieldCheck size={15}/>On-device</span><span className="fw-nav-sep"/>
-        <button className="fw-guide-btn" onClick={() => setGuide(true)}><BookOpen size={16}/>Quick guide</button></div>
+      <div className="fw-top-right"><span className="fw-local"><ShieldCheck size={15}/>{view === 'frigate' ? 'Site recorder' : 'On-device'}</span><span className="fw-nav-sep"/>
+        <button className="fw-guide-btn" onClick={() => setGuide(true)}><BookOpen size={16}/>Quick guide</button>
+        {DESKTOP_RECORDER&&<DesktopExit onExit={()=>{input.clear();setClosed(true);}}/>}</div>
     </div></header>
     <main className="fw-container fw-main">
       <div className="fw-hero"><div><div className="fw-eyebrow"><span className="fw-eyebrow-line"/>{VIEWS[view].eyebrow}</div><h1>{VIEWS[view].title}</h1>
         <p>{VIEWS[view].intro}</p></div>
         <div className="fw-actions"><input ref={fileInput} type="file" className="fw-hidden" aria-label="Open camera screenshot" accept="image/png,image/jpeg,image/webp" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void input.openImage(file); }}/>
           {view !== 'monitor' ? <a href="#monitor" className="fw-btn"><MonitorIcon size={16}/>View monitor</a> : <button className="fw-btn" disabled={input.picking} onClick={() => fileInput.current?.click()}><Upload size={16}/>Open image</button>}
-          {input.source.kind === 'screen' ? <button className="fw-btn fw-stop" onClick={input.clear}><Square size={14}/>Stop sharing</button> : <button className="fw-btn fw-primary" onClick={input.share} disabled={input.picking}>{input.picking ? <LoaderCircle size={17} className="fw-spin"/> : <MonitorUp size={17}/>}Share screen</button>}
+          {input.source.kind === 'screen' ? <button className="fw-btn fw-stop" onClick={input.clear}><Square size={14}/>Stop sharing</button> : view !== 'frigate' && <button className="fw-btn fw-primary" onClick={input.share} disabled={input.picking}>{input.picking ? <LoaderCircle size={17} className="fw-spin"/> : <MonitorUp size={17}/>}Share screen</button>}
         </div>
       </div>
       {input.notice && <div className={`fw-notice ${input.notice.info ? 'info' : ''}`} role={input.notice.info ? 'status' : 'alert'}><Info size={17}/><span>{input.notice.text}</span>
@@ -216,11 +222,12 @@ export default function Monitor() {
       <div hidden={view !== 'monitor'}><Workspace journal={journal} key={input.revision} source={input.source} grid={grid} setGrid={setGrid} mode={mode} setMode={setMode} onCloseSource={input.clear}/>
         <a className="fw-history-link" href="#vacancy"><Clock3 size={19}/><span><strong>Vacancy history</strong> See the first and last empty check for each place.</span><ArrowRight size={16}/></a>
       </div>
+      {view === 'frigate' && <RecorderWorkspace/>}
       {view === 'vacancy' && <VacancyDashboard journal={journal} sharing={input.source.kind === 'screen'}/>}
       <Reminders journal={journal} visible={view === 'reminders'}/>
-      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>Frames stay on this device and are never saved or uploaded. Vacancy history and reminder preferences stay in this browser.</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
+      <div className="fw-privacy"><div className="fw-privacy-icon"><LockKeyhole size={18}/></div><div><strong>Private by design</strong><span>{view === 'frigate' ? 'Your PC connects to the recorder you choose. Frigate controls recording and retention; Framewatch does not save its passwords or footage.' : 'Screen-share frames stay on this device. Vacancy history and reminder preferences stay in this browser.'}</span></div><ShieldCheck className="fw-privacy-stamp" size={26} strokeWidth={1.2}/></div>
     </main>
-    <footer className="fw-container fw-footer"><span><BrandMark small/> Framewatch <b>/</b> Assure Intelligence</span><span className="fw-footer-label"><i/> LOCAL VISION ENGINE</span></footer>
+    <footer className="fw-container fw-footer"><span><BrandMark small/> Framewatch <b>/</b> Assure Intelligence</span><span className="fw-footer-label"><i/> {view === 'frigate' ? 'RECORDER WORKSPACE' : 'LOCAL VISION ENGINE'}</span></footer>
     {guide && <Guide onClose={() => setGuide(false)}/>}
   </div>;
 }

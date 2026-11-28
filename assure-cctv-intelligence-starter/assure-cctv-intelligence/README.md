@@ -2,7 +2,11 @@
 
 Share the screen that already displays your CCTV cameras and see **which views contain a person**. No camera credentials, branch agent, Supabase account, or AI API key are required.
 
-## Launch on your PC — no installation
+## Frigate recorder workspace
+
+For your existing Frigate NVR: **Extract All → Framewatch.exe → Frigate → Connect recorder** on a Windows 10/11 x64 PC on the same network. Use the recorder’s authenticated HTTPS dashboard address and a viewer account. Watch a receive-only live camera, check reported FPS, filter recent detections and open retained event snapshots/clips. Switch to Monitor for iVMS screen sharing. The hosted `/frigate` shortcut and standalone HTML offer a labelled tour; recorder sign-in is desktop-only. See the [desktop app guide](desktop/README.md) for trusted certificates, WebRTC setup, upstream API references and tests.
+
+## Launch the offline screen monitor — no installation
 
 1. Download [Framewatch-PC.zip](public/downloads/Framewatch-PC.zip) (also available in the hosted monitor under **Quick guide → Download for PC**).
 2. On Windows, right-click the ZIP and choose **Extract All**. In the extracted folder, open **Framewatch.html** in a current **Microsoft Edge** or **Google Chrome** browser.
@@ -92,7 +96,8 @@ npm test                        # region geometry, evidence fusion, TTL, vacancy
 npm run build                   # Next.js production build and TypeScript check
 npx playwright install chromium # one-time, for optional browser tests
 npm run test:browser            # exercises the real local model and capture lifecycle
-npm run package:pc              # rebuild public/downloads/Framewatch-PC.zip from this source
+npm run package:pc              # requires Go 1.24+; rebuild public/downloads/Framewatch-PC.zip from this source
+npm run test:desktop            # native loopback launcher with a TLS recorder fixture and a real WebRTC peer
 npm run test:pc                 # test extracted HTML offline, using file:// and synthetic capture
 node scripts/benchmark-preview.mjs [archive.zip] # measure visible pixel changes during Heavy sweeps
 node scripts/benchmark-preview.mjs --latency [archive.zip] # measure synthetic pixel age and stall recovery

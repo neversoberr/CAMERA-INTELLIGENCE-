@@ -9,3 +9,9 @@ public/vision-runtime/
 
 /test-results/
 /playwright-report/
+
+# Site-local trust material and unbundled native build output
+frigate-ca.pem
+/desktop/desktop
+/desktop/desktop.exe
+/desktop/Framewatch.exe
