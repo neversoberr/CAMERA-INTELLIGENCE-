@@ -1,6 +1,6 @@
 // A classic worker allows MediaPipe to load its local WASM glue via importScripts.
 // Screen frames never leave the browser. Keep at most one compact history per tile.
-let engine, history = [], geometry = '';
+let checkedSurface, engine, history = [], geometry = '';
 async function initialise() {
   const packed = self.framewatchBundledAssets;
   const [{ FilesetResolver, ObjectDetector }, rules] = await Promise.all([
@@ -38,8 +38,18 @@ function detectRegion(e, frame, camera, region, pass, detector = e.detector) {
     { x: left/w, y: top/h, w: cw/w, h: ch/h }, pass);
 }
 
-self.onmessage = async ({ data: { frame, cols, rows, mode = 'balanced', live = false, frameToken, reset = false, reportProgress = false } }) => {
+self.onmessage = async ({ data: { frame: snapshot, cols, rows, mode = 'balanced', live = false, frameToken, reset = false, reportProgress = false, returnFrame = false } }) => {
   try {
+    let frame = snapshot;
+    if (returnFrame) {
+      // A native video bitmap may reference a capture/GPU buffer. Release it
+      // before model load or a long sweep; read it back only once, OFF the UI
+      // thread, rather than synchronizing it again for every overlapping tile.
+      checkedSurface ??= new OffscreenCanvas(1, 1);
+      size(checkedSurface, snapshot.width, snapshot.height);
+      checkedSurface.getContext('2d', { alpha: false, willReadFrequently: true }).drawImage(snapshot, 0, 0);
+      snapshot.close(); frame = checkedSurface;
+    }
     engine ??= initialise();
     const e = await engine, r = e.rules, heavy = mode === 'heavy';
     const second = heavy ? await e.loadHeavy() : null;
@@ -86,9 +96,14 @@ self.onmessage = async ({ data: { frame, cols, rows, mode = 'balanced', live = f
       readings.push(reading);
     }
     stats.scanMs = Math.round(performance.now() - now);
-    self.postMessage({ readings, stats });
+    // Return ownership of the exact checked pixels for Last scan. The live
+    // video never uses this bitmap and never waits for this response.
+    if (returnFrame) {
+      const evidence = frame.transferToImageBitmap();
+      try { self.postMessage({ readings, stats, evidence }, [evidence]); } finally { evidence.close(); }
+    } else self.postMessage({ readings, stats });
   } catch (error) {
     history = [];
     console.error('Local detector:', error); self.postMessage({ error: true });
-  } finally { frame.close(); }
+  } finally { snapshot.close(); }
 };

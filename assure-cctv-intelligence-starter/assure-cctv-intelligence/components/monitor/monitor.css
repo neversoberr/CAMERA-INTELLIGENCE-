@@ -269,3 +269,8 @@
 .fw-playback-meter { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 10px/1.4 var(--mono); }
 .fw-playback-meter i { background: currentColor; width: 5px; height: 5px; border-radius: 50%; }
 .fw-live-feed ~ .fw-no-frame { background: #101411; }
+
+.fw-capture-rate { margin-right: auto; color: var(--muted); font: 10px/1.4 var(--mono); }
+.fw-capture-rate label { display: flex; align-items: center; gap: 6px; }
+.fw-capture-rate select { padding: 4px; border: 1px solid #384239; border-radius: 5px; background: #202520; color: var(--text); font: inherit; }
+.fw-capture-rate small { display: block; color: var(--amber); }

@@ -2,7 +2,11 @@
 
 Share the screen that already displays your CCTV cameras and see **which views contain a person**. No camera credentials, branch agent, Supabase account, or AI API key are required.
 
-## Launch on your PC — no installation
+## Frigate recorder workspace
+
+For your existing Frigate NVR: **Extract All → Framewatch.exe → Frigate → Connect recorder** on a Windows 10/11 x64 PC on the same network. Use the recorder’s authenticated HTTPS dashboard address and a viewer account. Watch a receive-only live camera, check reported FPS, filter recent detections and open retained event snapshots/clips. Switch to Monitor for iVMS screen sharing. The hosted `/frigate` shortcut and standalone HTML offer a labelled tour; recorder sign-in is desktop-only. See the [desktop app guide](desktop/README.md) for trusted certificates, WebRTC setup, upstream API references and tests.
+
+## Launch the offline screen monitor — no installation
 
 1. Download [Framewatch-PC.zip](public/downloads/Framewatch-PC.zip) (also available in the hosted monitor under **Quick guide → Download for PC**).
 2. On Windows, right-click the ZIP and choose **Extract All**. In the extracted folder, open **Framewatch.html** in a current **Microsoft Edge** or **Google Chrome** browser.
@@ -30,9 +34,9 @@ Open **http://localhost:3000**. For a production build, run `npm run build` and 
 
 ### Live video vs Last scan
 
-During a share the wall defaults to **Live video**: the browser plays one muted video of the selected window, cropped to the grid, without waiting for the detector. Framewatch requests **30 fps** rather than capping capture at 6; the browser, viewer and PC determine what actually arrives. **Input ~… fps** estimates presented shared-window frames, not the camera's own frame rate. iVMS could be refreshing its window even when a particular camera supplies fewer distinct pictures.
+During a share the wall defaults to **Live video**: the browser plays one muted video of the selected window, cropped to the grid, without waiting for the detector. **Capture target → Real-time · 60 fps** requests a high-refresh share with no mandatory minimum. Try **Lower load · 30 fps** if capture competes with iVMS or Heavy on your PC. This changes only the existing video track’s frame-rate constraints, not the selected window, resolution request, camera layout or detection profile. Each new share starts at Real-time. Unsupported rate changes leave playback on its previous setting. **Input ~… fps** estimates presented shared-window frames, not the camera's own frame rate. iVMS could be refreshing its window even when a particular camera supplies fewer distinct pictures.
 
-Tile labels say **Last check** because the picture can already have moved. Choose **Last scan** to see the checked still with the boxes, then **Live video** to switch back. Neither switch stops capture, triggers extra scans or changes history. A screenshot or the sample cannot show live motion. If playback is choppy, check that the iVMS window itself shows smooth live video and is not minimized; try **Balanced** to reduce CPU contention. If only the labels are slow, look at the detector's scan time, not the input fps.
+Tile labels say **Last check** because the picture can already have moved. Choose **Last scan** to see the checked still with the boxes, then **Live video** to switch back. Neither switch stops capture, triggers extra scans or changes history. A screenshot or the sample cannot show live motion. To check *delay*, show the same camera in both windows side by side. Compare a visible movement or that camera’s timestamp (not Framewatch’s “Checked” time). Keep iVMS in **live view**, not minimized, and select the iVMS window itself in the share picker. The browser cannot see when a camera originally captured a picture or guarantee no delay. If the PC struggles, try Lower load before changing detection mode. If only the labels are slow, look at the detector's scan time, not the input fps.
 
 ### Speed and detection modes
 
@@ -82,7 +86,7 @@ Small, occluded or distant people can be missed. A frozen image, poster, or refl
 
 - Use a recent desktop browser with WebAssembly, WebGL2 and OffscreenCanvas. Screen capture requires a trustworthy browser context (HTTPS, localhost, or the extracted local HTML in a supporting browser), browser permission, and sometimes OS permission. If an embedded preview blocks sharing, use the PC copy or a screenshot.
 - Only select a screen you are authorised to analyse. No microphone, video recording, face recognition, uploads or database writes. Frames and boxes are never persisted; only the vacancy journal and reminder preferences are saved locally.
-- Each pass freezes one frame, crops each camera cell and runs the COCO **EfficientDet-Lite0** detector (also **EfficientDet-Lite2** in Heavy mode) inside a local Web Worker. Only bounding boxes and occupancy labels return to the UI. The models, WASM, fonts and sample image are served by the web app itself or embedded in the portable HTML. See [model origin, checksum and licence](public/models/NOTICE.md).
+- Each pass freezes one frame, crops each camera cell and runs the COCO **EfficientDet-Lite0** detector (also **EfficientDet-Lite2** in Heavy mode) inside a local Web Worker. For a live share the UI hands the worker a cropped video bitmap rather than synchronously drawing the full wall to a CPU canvas. The worker releases that capture buffer, scans its own copy, and sends back the exact checked bitmap with the labels/boxes for Last scan. The moving video never waits for that copy. The models, WASM, fonts and sample image are served by the web app itself or embedded in the portable HTML. See [model origin, checksum and licence](public/models/NOTICE.md).
 - The default 2 × 2 sample uses results precomputed from that exact bundled image so the first screen does not need to load the model. Every user-selected source runs actual inference.
 
 ## Checks
@@ -92,9 +96,11 @@ npm test                        # region geometry, evidence fusion, TTL, vacancy
 npm run build                   # Next.js production build and TypeScript check
 npx playwright install chromium # one-time, for optional browser tests
 npm run test:browser            # exercises the real local model and capture lifecycle
-npm run package:pc              # rebuild public/downloads/Framewatch-PC.zip from this source
+npm run package:pc              # requires Go 1.24+; rebuild public/downloads/Framewatch-PC.zip from this source
+npm run test:desktop            # native loopback launcher with a TLS recorder fixture and a real WebRTC peer
 npm run test:pc                 # test extracted HTML offline, using file:// and synthetic capture
 node scripts/benchmark-preview.mjs [archive.zip] # measure visible pixel changes during Heavy sweeps
+node scripts/benchmark-preview.mjs --latency [archive.zip] # measure synthetic pixel age and stall recovery
 ```
 
 ## Existing starter components

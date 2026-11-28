@@ -2,6 +2,22 @@
 
 The target decision is **does this camera view contain a visible person?** No identities, remote inference or training on user screens. The comparisons below use actual browser workers, not mocked detections.
 
+## 0.6: how recent are the pixels in Live video?
+
+Framewatch still plays the native shared video, not a queue of JavaScript frames. Real-time requests **60 fps** without a required minimum or a resolution cap; **Lower load** requests at most 30 fps on the existing track. For scans, a cropped bitmap goes from the video to the worker. The worker copies it once off the UI thread, releases the capture buffer before inference, and returns the checked pixels with the result. Continuous live rendering uses neither a canvas loop nor React state per frame. After an interruption, the first newly presented frame wakes the waiting view independently of the 1 Hz input meter.
+
+**Latency probe:** two warm 12 s observations per extracted offline PC release in order 0.5 / 0.6 / 0.6 / 0.5, Chromium 133, two-vCPU Linux, software rendering, Heavy on. A synthetic 640×360 2×2 wall paints a timestamped sequence number approximately every 16 ms (~62 changes/s). In `--latency` mode the replacement picker uses `canvas.captureStream(requestedRate)` so the browser samples that source at the requested limit, rather than giving both apps the same manual 30 fps input. Each animation tick reads the marker from the visible wall element; age includes repeats. Afterward, stop painting until the app shows its no-frame overlay, resume, and time the first resumed source paint to visible **new** pixels.
+
+| Observation (two runs, rounded) | v0.5 | v0.6 |
+|---|---:|---:|
+| Median age of displayed marker | 17–18 ms | **10–11 ms** |
+| 95th percentile age | 32 ms | **23–25 ms** |
+| Visible changes/s under load | 29.9 | **40.7–41.1** |
+| First resumed paint to uncovered new pixels | 841 / 1825 ms | **421 / 431 ms** |
+| Completed Heavy sweeps per observation | 1–2 | 1 |
+
+These are **source-canvas to visible-element samples**, not camera-to-monitor latency, a physical display measurement, or a promise of 60 distinct camera pictures/s. Windows window capture, iVMS decoding/buffering, high resolutions and the user's hardware are not reproduced. A higher capture target can cost CPU and slow detection; there is still only one scan in flight. Compare the same movement or camera clock side by side on the intended PC. The input FPS counter is not a delay measurement.
+
 ## 0.5: live picture updates while Heavy is busy
 
 v0.4 requested 4 fps (max 6) and displayed the **scan canvas**. v0.5 requests 30 fps (ideal, not mandatory) and plays the already-running shared-window **video** directly in the cropped wall. No changes to Heavy's model, coverage, inference interval or vacancy rules. **Last scan** is a separate still; live video never draws boxes measured on an earlier frame.
@@ -76,6 +92,7 @@ npm run benchmark                       # warm static/changing worker timings
 # in the benchmark browser, keeping all other inputs fixed.
 node scripts/benchmark-pc-live.mjs       # interval between detection results (optional archive path)
 node scripts/benchmark-preview.mjs       # preview pixel changes; optional archive, e.g. v0.4 for comparison
+node scripts/benchmark-preview.mjs --latency [archive.zip] # pixel age + recovery from a capture stall
 ```
 
 The timing harnesses accept `CHROMIUM_PATH` for an existing Chromium executable. Set `BENCH_INTERVALS=4` for the PC run above. For real acceptance testing, check representative occupied **and** vacant views from the intended cameras, including seated/distant people and night lighting; treat weak/obstructed views as uncertain rather than relying on an empty label.

@@ -27,10 +27,11 @@ export function useLivePreview(source: Source, crop: Rect) {
     };
     // Read an existing frame counter at 1 Hz for the UI; no React updates, draws,
     // model calls or history writes per playback frame. A stall is not progress.
+    const unsubscribe = clock.onResume(sample);
     sample(); const timer = setInterval(sample, 1000);
     video.addEventListener('resize', sample); track?.addEventListener('mute', sample);
     return () => {
-      clearInterval(timer); video.removeEventListener('resize', sample); track?.removeEventListener('mute', sample);
+      unsubscribe(); clearInterval(timer); video.removeEventListener('resize', sample); track?.removeEventListener('mute', sample);
       if (video.parentNode === parent) parent.removeChild(video);
       // Only useSource stops or replaces the underlying capture.
     };

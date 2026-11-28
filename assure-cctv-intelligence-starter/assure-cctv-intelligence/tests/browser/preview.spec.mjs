@@ -40,3 +40,41 @@ test('a failed detector does not freeze or replace the live picture', async ({co
   await expect(page.locator('.fw-stage canvas')).toBeHidden();
   await page.getByRole('button', {name:'Stop sharing'}).click();
 });
+
+test('capture target changes on the same live track; an unsupported change does not stop playback', async ({page}) => {
+  await page.goto('/'); await installMovingWall(page); await page.getByRole('button',{name:'Share screen'}).click();
+  const target = page.getByRole('combobox',{name:'Capture target'});
+  await expect(target).toHaveValue('60');
+  await page.evaluate(() => {
+    // CanvasCaptureMediaStreamTrack here is manually driven. Record requests
+    // to the actual track; separately simulate a browser rejecting a change.
+    const p = window.previewProbe; p.rates = [];
+    const apply = p.track.applyConstraints.bind(p.track);
+    p.track.applyConstraints = async cs => { p.rates.push(cs.frameRate); if (p.reject) throw Error('Not supported'); return apply(cs); };
+  });
+  await target.selectOption('30'); await expect(target).toHaveValue('30');
+  await page.evaluate(() => { window.previewProbe.reject = true; });
+  await target.selectOption('60'); await expect(page.getByText(/Rate change unavailable/)).toBeVisible(); await expect(target).toHaveValue('30');
+  await page.evaluate(() => { window.previewProbe.reject = false; });
+  await target.selectOption('60'); await expect(target).toHaveValue('60');
+  const p = await page.evaluate(()=>({rates:window.previewProbe.rates,picks:window.previewProbe.picks,live:window.previewProbe.track.readyState}));
+  expect(p).toEqual({rates:[{ideal:30,max:30},{ideal:60},{ideal:60}],picks:1,live:'live'});
+  await expect(page.locator('.fw-engine-stats')).toContainText('4/4 views freshly scanned');
+  await page.getByRole('button',{name:'Stop sharing'}).click(); await expect(target).toHaveCount(0);
+});
+
+test('resumed video becomes visible on new pixels without waiting for the 1 Hz meter', async ({page}) => {
+  await page.goto('/'); await installMovingWall(page);
+  await page.evaluate(() => {
+    const schedule = window.setInterval.bind(window);
+    window.setInterval = (fn, ms, ...args) => schedule(ms === 1000 ? (...a) => { if (!window.previewProbe.holdMeter) fn(...a); } : fn, ms, ...args);
+  });
+  await page.getByRole('button',{name:'Fast',exact:true}).click(); await page.getByRole('button',{name:'Share screen'}).click();
+  await expect(page.locator('.fw-playback-meter')).toHaveText(/Input ~[1-9]\d* fps/);
+  await page.evaluate(() => { window.previewProbe.freeze = true; });
+  const missing = page.getByText('Waiting for live video frames'); await expect(missing).toBeVisible();
+  await page.evaluate(() => { const p=window.previewProbe; p.holdMeter=true; p.firstNew=p.produced+1; p.freeze=false; });
+  await expect(missing).toHaveCount(0, {timeout:5000});
+  expect(await page.evaluate(() => window.previewProbe.displayedId() >= window.previewProbe.firstNew)).toBe(true);
+  await page.getByRole('button',{name:'Stop sharing'}).click();
+});

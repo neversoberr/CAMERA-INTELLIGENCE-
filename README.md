@@ -2,13 +2,17 @@
 
 **Framewatch** reads a user-selected CCTV screen or screenshot and marks each camera view **Occupied**, **Empty** (no person detected), or **Unclear**. Analysis runs in the browser, with no camera passwords, database setup, or video uploads.
 
-## Launch on your PC
+## Frigate recorder • Windows app
+
+Already using [Frigate](https://github.com/blakeblackshear/frigate)? Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), **Extract All**, and run **Framewatch.exe** on the Windows x64 PC at your camera site. Enter your Frigate **HTTPS dashboard address** and sign in there with a viewer account. Choose a camera for a snapshot or **Watch live** (WebRTC); filter recent detections and **Review** available snapshots and clips. The app does not install Frigate or change its settings. [Setup, compatibility and privacy](assure-cctv-intelligence-starter/assure-cctv-intelligence/desktop/README.md).
+
+## Offline iVMS monitor
 
 Download [Framewatch-PC.zip](assure-cctv-intelligence-starter/assure-cctv-intelligence/public/downloads/Framewatch-PC.zip), choose **Extract All**, and double-click **Framewatch.html** in the extracted folder. Use a current desktop Edge or Chrome browser. Click **Share screen**, select the CCTV window, and match its grid. **Heavy** detection is on by default: two person models check every usable camera in every sweep. Choose **Balanced** or **Fast** for quicker detections. No installation, commands, internet connection or Arena access token are required.
 
 ## Watch the cameras move
 
-Leave **Live video** selected to see the shared iVMS window as it plays. The browser requests 30 fps and displays the frames it receives, even during a Heavy scan. **Input ~… fps** measures the shared-window input, not how often a person is detected. Choose **Last scan** to inspect a still with matched boxes. Actual motion depends on the camera feed, iVMS, the browser and the PC.
+Leave **Live video** selected to see the shared iVMS window as it plays. By default **Capture target → Real-time** asks for 60 fps without forcing a minimum or downscaling your wall. If your PC is overloaded, try **Lower load · 30 fps** on the same share. Video keeps playing during Heavy scans. **Input ~… fps** measures the shared-window input, not how often a person is detected. Choose **Last scan** to inspect a still with matched boxes. The app cannot remove delay already in iVMS or guarantee a zero-delay screen copy. Compare the same moving camera or timestamp side by side, not its occupancy label.
 
 ## When was a cabin empty?
 

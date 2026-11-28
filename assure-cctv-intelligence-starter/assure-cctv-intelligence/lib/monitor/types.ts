@@ -1,5 +1,5 @@
 import type { FrameClock } from './live-frames';
-import { frameRegion } from './frame-region';
+import { fitFrame, frameRegion } from './frame-region';
 import { SAMPLE_URL } from '@/lib/monitor/platform';
 
 export type Grid = { cols: number; rows: number };
@@ -55,11 +55,19 @@ export function takeFrame(el: HTMLVideoElement | HTMLImageElement, crop: Rect, c
   const height = el instanceof HTMLVideoElement ? el.videoHeight : el.naturalHeight;
   if (!width || !height) throw new Error('No source frame');
   const { x, y, w, h } = frameRegion(width, height, crop);
-  const scale = Math.min(1, maxSide / Math.max(w, h));
-  const dw = Math.max(1, Math.round(w * scale)), dh = Math.max(1, Math.round(h * scale));
+  const { width: dw, height: dh } = fitFrame(w, h, maxSide);
   if (canvas.width !== dw) canvas.width = dw;
   if (canvas.height !== dh) canvas.height = dh;
   const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
   if (!ctx) throw new Error('Canvas unavailable');
   ctx.drawImage(el, x, y, w, h, 0, 0, canvas.width, canvas.height);
+}
+
+// Request a bitmap directly from the native video. Do not synchronously copy
+// the whole wall into a CPU canvas while the user is watching it play.
+export function liveSnapshot(video: HTMLVideoElement, crop: Rect, maxSide: number) {
+  if (!video.videoWidth || !video.videoHeight) throw new Error('No source frame');
+  const { x, y, w, h } = frameRegion(video.videoWidth, video.videoHeight, crop);
+  const { width, height } = fitFrame(w, h, maxSide);
+  return createImageBitmap(video, x, y, w, h, width === w && height === h ? {} : { resizeWidth: width, resizeHeight: height });
 }
